@@ -29,8 +29,9 @@ struct job {
 
 struct operation {
 	int id;
-	int job_id;
-	int type_id;
+	int order;
+	struct job *job;
+	struct type *type;
 	int proc_time;
 	int idle_time;
 };

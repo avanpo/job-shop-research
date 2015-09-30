@@ -20,4 +20,9 @@ struct node {
 	int start_time;
 };
 
+struct graph *construct_graph(struct instance *inst);
+void destroy_graph(struct graph *graph);
+
+void initialize_order(struct graph *graph);
+
 #endif

@@ -81,17 +81,17 @@ void print_inst(struct instance *inst)
 	int t, j, o, to;
 	printf("types: %d\n", inst->num_types);
 	for (t = 0; t < inst->num_types; ++t) {
-		printf("  type %d: %d (", t, (inst->types + t)->num_machines);
+		printf("  type %d: %d (", t, inst->types[t].num_machines);
 		for (to = 0; to < inst->num_ops; ++to) {
-			printf(" %d", (inst->types + t)->ops[to]);
+			printf(" %d", inst->types[t].ops[to]);
 		}
 		printf(" )\n");
 	}
 	printf("jobs: %d (ops: %d)\n", inst->num_jobs, inst->num_ops);
 	for (j = 0; j < inst->num_jobs; ++j) {
-		printf("  job %d: %d\n", j, (inst->jobs + j)->num_ops);
-		for (o = 0; o < (inst->jobs + j)->num_ops; ++o) {
-			struct operation *op = (inst->jobs + j)->ops + o;
+		printf("  job %d: %d\n", j, inst->jobs[j].num_ops);
+		for (o = 0; o < inst->jobs[j].num_ops; ++o) {
+			struct operation *op = inst->jobs[j].ops + o;
 			printf("    op %d: order %d, type %d, proc_time %d, idle_time %d\n",
 				op->id, op->order, op->type, op->proc_time, op->idle_time);
 		}

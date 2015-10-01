@@ -23,6 +23,8 @@ struct node {
 struct graph *construct_graph(struct instance *inst);
 void destroy_graph(struct graph *graph);
 
-void initialize_order(struct graph *graph);
+void init_graph(struct graph *graph);
+
+void print_graph(struct graph *graph);
 
 #endif

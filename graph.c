@@ -109,6 +109,33 @@ void serialize_graph(struct graph *graph)
 	free(serialized);
 }
 
+void swap_operations(struct node *n1, struct node *n2)
+{
+	if (n1->type != n2->type) {
+		fprintf(stderr, "Cannot swap operations %d and %d: machine types do not match.\n", n1->id, n2->id);
+		exit(EXIT_FAILURE);
+	} else if (n1->id == n2->id) {
+		fprintf(stderr, "Cannot swap operation %d with itself.\n", n1->id);
+		exit(EXIT_FAILURE);
+	}
+	struct node_type *t = n1->type;
+	int i, a, b;
+	for (i = 0, a = -1, b = -1; i < t->num_ops; ++i) {
+		if (t->ops_order[i] == n1->id) {
+			a = i;
+		} else if (t->ops_order[i] == n2->id) {
+			b = i;
+		}
+	}
+	if (a >= 0 && b >= 0) {
+		t->ops_order[a] = n2->id;
+		t->ops_order[b] = n1->id;
+		return;
+	}
+	fprintf(stderr, "Cannot find operations %d and %d in machine type %d.\n", n1->id, n2->id, t->id);
+	exit(EXIT_FAILURE);
+}
+
 void print_graph(struct graph *graph)
 {
 	printf("Printing graph representation\n");

@@ -43,9 +43,11 @@ struct graph *construct_graph(struct instance *inst);
 void destroy_graph(struct graph *graph);
 
 void init_graph(struct graph *graph);
-
 void serialize_graph(struct graph *graph);
 
+void swap_operations(struct node *n1, struct node *n2);
+
 void print_graph(struct graph *graph);
+void print_longest_path(struct graph *graph);
 
 #endif

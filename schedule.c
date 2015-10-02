@@ -43,8 +43,8 @@ void destroy_schedule(struct schedule *sch)
 
 void print_schedule(struct schedule *sch)
 {
+	printf("Printing schedule (makespan %d)\n", sch->makespan);
 	int i, j, k, o, l;
-	printf("Schedule has makespan of %d.\n", sch->makespan);
 	printf("+---+---+");
 	for (k = 0; k < sch->makespan; ++k) {
 		printf("-");
@@ -98,8 +98,8 @@ void print_schedule(struct schedule *sch)
 
 void print_schedule_labeled(struct schedule *sch)
 {
+	printf("Printing schedule (makespan %d)\n", sch->makespan);
 	int i, j, k, o, l;
-	printf("Schedule has makespan of %d.\n", sch->makespan);
 	printf("+---+---+");
 	for (k = 0; k < sch->makespan; ++k) {
 		printf("--");

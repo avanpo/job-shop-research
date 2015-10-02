@@ -5,7 +5,7 @@
 #include "graph.h"
 #include "schedule.h"
 
-static int serialize_node(struct graph *graph, struct node *node, int *start_times);
+static int serialize_node(struct graph *graph, struct node *node);
 
 struct graph *construct_graph(struct instance *inst)
 {
@@ -26,6 +26,7 @@ struct graph *construct_graph(struct instance *inst)
 		t->id = i;
 		t->num_machines = inst->types[i].num_machines;
 		t->end_times = calloc(inst->types[i].num_machines, sizeof(int));
+		t->end_ops = calloc(inst->types[i].num_machines, sizeof(int));
 		t->num_ops = inst->types[i].num_ops;
 		t->ops_order = calloc(inst->types[i].num_ops, sizeof(int));
 	}
@@ -33,12 +34,13 @@ struct graph *construct_graph(struct instance *inst)
 	for (i = 0; i < inst->num_ops; ++i, ++n) {
 		n->id = i;
 		n->op = inst->ops + i;
+		n->type = &g->types[n->op->type];
 		if (n->op == n->op->job->ops) {
 			n->prev = NULL;
 		} else {
 			n->prev = n - 1;
 		}
-		n->type = &g->types[n->op->type];
+		n->prev_in_path = NULL;
 	}
 
 	return g;
@@ -49,6 +51,7 @@ void destroy_graph(struct graph *graph)
 	int i;
 	for (i = 0; i < graph->num_types; ++i) {
 		free(graph->types[i].end_times);
+		free(graph->types[i].end_ops);
 		free(graph->types[i].ops_order);
 	}
 	free(graph->types);
@@ -72,11 +75,10 @@ void init_graph(struct graph *graph)
 
 void serialize_graph(struct graph *graph)
 {
-	struct node *n;
+	struct node *n, *last;
 
 	int *progress = calloc(graph->num_types, sizeof(int));
 	int *serialized = calloc(graph->num_nodes, sizeof(int));
-	int *start_times = calloc(graph->num_nodes, sizeof(int));
 
 	int i, j, l, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
@@ -86,11 +88,12 @@ void serialize_graph(struct graph *graph)
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
 		if (n->prev == NULL || serialized[n->prev->id]) {
-			l = serialize_node(graph, n, start_times);
+			l = serialize_node(graph, n);
 			serialized[n->id]++;
 
 			if (l > makespan) {
 				makespan = l;
+				last = n;
 			}
 
 			++progress[j];
@@ -99,19 +102,20 @@ void serialize_graph(struct graph *graph)
 			++j;
 		}
 	}
+	graph->last = last;
 	graph->schedule->makespan = makespan;
 
 	free(progress);
 	free(serialized);
-	free(start_times);
 }
 
 void print_graph(struct graph *graph)
 {
+	printf("Printing graph representation\n");
 	int i, j;
 	for (i = 0; i < graph->num_types; ++i) {
-		printf("Type %d: %d machines\n", i, graph->types[i].num_machines);
-		printf("  Operation priority:");
+		printf("type %d: %d machines\n", i, graph->types[i].num_machines);
+		printf("  operation priority:");
 		for (j = 0; j < graph->types[i].num_ops; ++j) {
 			printf(" %2d", graph->types[i].ops_order[j]);
 		}
@@ -119,14 +123,37 @@ void print_graph(struct graph *graph)
 	}
 }
 
-static int serialize_node(struct graph *graph, struct node *node, int *start_times)
+void print_longest_path(struct graph *graph)
 {
+	printf("Printing longest path (makespan %d)\n", graph->last->start_time + graph->last->op->proc_time);
+	struct node *n;
+	int *reverse_path = calloc(graph->num_nodes, sizeof(int));
+	int i;
+	for (i = 0, n = graph->last; n; ++i, n = n->prev_in_path) {
+		reverse_path[i] = n->id;
+	}
+	printf("time |  id | job | tp m | proc idle\n");
+	printf("-----+-----+-----+------+----------\n");
+	for (--i; i >= 0; --i) {
+		n = graph->nodes + reverse_path[i];
+		printf("%4d |  %02d | %3d |  %1d %1d | %4d %4d\n", n->start_time, n->id, n->op->job->id, n->type->id,
+				n->machine, n->op->proc_time, n->op->idle_time);
+	}
+	printf("-----+-----+-----+------+----------\n");
+}
+
+static int serialize_node(struct graph *graph, struct node *node)
+{
+	// calculate time at which earlier job operations
+	// are finished
 	int job_release = 0;
 	if (node->prev != NULL) {
-		job_release = start_times[node->prev->id] + node->prev->op->proc_time +
+		job_release = node->prev->start_time + node->prev->op->proc_time +
 			node->prev->op->idle_time;
 	}
 
+	// calculate time at which at least 1 machine is
+	// available
 	int machine = 0;
 	int machine_release = node->type->end_times[machine];
 	int t;
@@ -137,12 +164,21 @@ static int serialize_node(struct graph *graph, struct node *node, int *start_tim
 		}
 	}
 
-	int start_time = job_release > machine_release ? job_release : machine_release;
+	int start_time;
+	if (job_release >= machine_release) {
+		start_time = job_release;
+		node->prev_in_path = node->prev;
+	} else {
+		start_time = machine_release;
+		node->prev_in_path = graph->nodes + node->type->end_ops[machine];
+	}
 	int finish_time = start_time + node->op->proc_time;
 
 	graph->schedule->types[node->type->id].machines[machine].op_start_times[node->id] = start_time;
-	start_times[node->id] = start_time;
+	node->start_time = start_time;
+	node->machine = machine;
 	node->type->end_times[machine] = finish_time;
+	node->type->end_ops[machine] = node->id;
 
 	return finish_time;
 }

@@ -44,19 +44,82 @@ void destroy_schedule(struct schedule *sch)
 void print_schedule(struct schedule *sch)
 {
 	int i, j, k, o, l;
-	printf("schedule has makespan of %d\n\n", sch->makespan);
-	printf("type | mac |");
-	for (k = 0; k < sch->makespan; k += 2) {
-		printf("%-2d  ", k);
+	printf("Schedule has makespan of %d.\n", sch->makespan);
+	printf("+---+---+");
+	for (k = 0; k < sch->makespan; ++k) {
+		printf("-");
 	}
-	printf("\n-----+-----+");
+	printf("+\n");
+	printf("| t | m |");
+	for (k = 0; k < sch->makespan - 1; k += 4) {
+		if (k < sch->makespan - 3) {
+			printf("%-2d  ", k);
+		} else {
+			printf("%-2d", k);
+		}
+	}
+	for (k = 0; k < sch->makespan % 2; ++k) {
+		printf(" ");
+	}
+	printf("|\n+---+---+");
+	for (k = 0; k < sch->makespan; ++k) {
+		printf("-");
+	}
+	printf("+\n");
+	for (i = 0; i < sch->num_types; ++i) {
+		for (j = 0; j < sch->types[i].num_machines; ++j) {
+			printf("| %1d | %1d |", i, j);
+			for (k = 0; k < sch->makespan;) {
+				int flag = 0;
+				for (o = 0; o < sch->inst->num_ops; ++o) {
+					if (sch->types[i].machines[j].op_start_times[o] == k) {
+						for (l = 0; l < sch->inst->ops[o].proc_time; ++l) {
+							printf("=");
+							++k;
+						}
+						flag++;
+						break;
+					}
+				}
+				if (!flag) {
+					++k;
+					printf(" ");
+				}
+			}
+			printf("|\n");
+		}
+	}
+	printf("+---+---+");
+	for (k = 0; k < sch->makespan; ++k) {
+		printf("-");
+	}
+	printf("+\n");
+}
+
+void print_schedule_labeled(struct schedule *sch)
+{
+	int i, j, k, o, l;
+	printf("Schedule has makespan of %d.\n", sch->makespan);
+	printf("+---+---+");
 	for (k = 0; k < sch->makespan; ++k) {
 		printf("--");
 	}
-	printf("\n");
+	printf("+\n");
+	printf("| t | m |");
+	for (k = 0; k < sch->makespan; k += 2) {
+		printf("%-2d  ", k);
+	}
+	if (sch->makespan % 2 == 1) {
+		printf("  ");
+	}
+	printf("|\n+---+---+");
+	for (k = 0; k < sch->makespan; ++k) {
+		printf("--");
+	}
+	printf("+\n");
 	for (i = 0; i < sch->num_types; ++i) {
 		for (j = 0; j < sch->types[i].num_machines; ++j) {
-			printf("%4d | %3d |", i, j);
+			printf("| %1d | %1d |", i, j);
 			for (k = 0; k < sch->makespan; ++k) {
 				int flag = 0;
 				for (o = 0; o < sch->inst->num_ops; ++o) {
@@ -74,7 +137,12 @@ void print_schedule(struct schedule *sch)
 					printf("  ");
 				}
 			}
-			printf("\n");
+			printf("|\n");
 		}
 	}
+	printf("+---+---+");
+	for (k = 0; k < sch->makespan; ++k) {
+		printf("--");
+	}
+	printf("+\n");
 }

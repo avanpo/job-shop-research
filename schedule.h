@@ -23,5 +23,6 @@ struct schedule *construct_schedule(struct instance *inst);
 void destroy_schedule(struct schedule *sch);
 
 void print_schedule(struct schedule *sch);
+void print_schedule_labeled(struct schedule *sch);
 
 #endif

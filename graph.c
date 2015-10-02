@@ -110,42 +110,13 @@ void print_graph(struct graph *graph)
 {
 	int i, j;
 	for (i = 0; i < graph->num_types; ++i) {
-		printf("type %d: %d machines\n", i, graph->types[i].num_machines);
-		printf("  op priority:");
+		printf("Type %d: %d machines\n", i, graph->types[i].num_machines);
+		printf("  Operation priority:");
 		for (j = 0; j < graph->types[i].num_ops; ++j) {
-			printf(" %d", graph->types[i].ops_order[j]);
+			printf(" %2d", graph->types[i].ops_order[j]);
 		}
 		printf("\n");
 	}
-	/*printf("\n");
-	printf(" legend: NO_ARC  .\n");
-	printf("         JOB_ARC 1\n");
-	printf("         ORD_ARC 2\n\n");
-	printf(" op |");
-	for (j = 0; j < graph->num_nodes; ++j) {
-		printf(" %2d", j);
-	}
-	printf(" | mt\n ---+");
-	for (j = 0; j < graph->num_nodes; ++j) {
-		printf("---");
-	}
-	printf("-+---\n");
-	for (i = 0; i < graph->num_nodes; ++i) {
-		printf(" %2d |", i);
-		for (j = 0; j < graph->num_nodes; ++j) {
-			if (graph->arcs[i][j]) {
-				printf(" %2d", graph->arcs[i][j]);
-			} else {
-				printf("  .", graph->arcs[i][j]);
-			}
-		}
-		printf(" | %2d\n", graph->nodes[i].op->type);
-	}
-	printf(" ---+");
-	for (j = 0; j < graph->num_nodes; ++j) {
-		printf("---");
-	}
-	printf("-+---\n");*/
 }
 
 static int serialize_node(struct graph *graph, struct node *node, int *start_times)
@@ -175,4 +146,3 @@ static int serialize_node(struct graph *graph, struct node *node, int *start_tim
 
 	return finish_time;
 }
-

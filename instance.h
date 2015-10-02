@@ -15,7 +15,8 @@ struct instance {
 struct type {
 	int id;
 	int num_machines;
-	int ops[MAX_OPERATIONS];
+	int num_ops;
+	int *ops;
 };
 
 struct job {

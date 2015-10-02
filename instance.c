@@ -14,7 +14,7 @@ struct instance *read_inst(char fname[])
 	struct instance *inst = calloc(1, sizeof(struct instance));
 	struct operation *ops = calloc(MAX_OPERATIONS, sizeof(struct operation));
 
-	int t, j, o, jo;
+	int t, j, o, jo, count;
 	int num_types, num_jobs, num_ops;
 
 	// read types
@@ -57,12 +57,15 @@ struct instance *read_inst(char fname[])
 	inst->ops = ops;
 
 	// bind types to their operations
-	for (t = 0, type = inst->types; t < num_types; ++t, ++type) {
+	for (t = 0, type = inst->types, count = 0; t < num_types; ++t, ++type, count = 0) {
+		type->ops = calloc(inst->num_ops, sizeof(int));
 		for (o = 0, op = inst->ops; o < inst->num_ops; ++o, ++op) {
 			if (op->type == t) {
 				type->ops[o] = 1;
+				count++;
 			}
 		}
+		type->num_ops = count;
 	}
 
 	return inst;
@@ -70,6 +73,10 @@ struct instance *read_inst(char fname[])
 
 void destroy_inst(struct instance *inst)
 {
+	int i;
+	for (i = 0; i < inst->num_types; ++i) {
+		free(inst->types[i].ops);
+	}
 	free(inst->types);
 	free(inst->jobs);
 	free(inst->ops);
@@ -83,9 +90,9 @@ void print_inst(struct instance *inst)
 	for (t = 0; t < inst->num_types; ++t) {
 		printf("  type %d: %d (", t, inst->types[t].num_machines);
 		for (to = 0; to < inst->num_ops; ++to) {
-			printf(" %d", inst->types[t].ops[to]);
+			printf("%d ", inst->types[t].ops[to]);
 		}
-		printf(" )\n");
+		printf("total: %d)\n", inst->types[t].num_ops);
 	}
 	printf("jobs: %d (ops: %d)\n", inst->num_jobs, inst->num_ops);
 	for (j = 0; j < inst->num_jobs; ++j) {

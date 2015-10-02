@@ -2,6 +2,7 @@
 #define GRAPH_H
 
 #include "instance.h"
+#include "schedule.h"
 
 #define NO_ARC  0
 #define JOB_ARC 1
@@ -9,17 +10,15 @@
 
 struct graph {
 	struct instance *inst;
-	int num_factories;
-	struct factory *factories;
+	int num_types;
+	struct node_type *types;
 	int num_nodes;
 	struct node *nodes;
-	int arcs[MAX_OPERATIONS][MAX_OPERATIONS];
 
-	struct operation *last_op;
-	int makespan;
+	struct schedule *schedule;
 };
 
-struct factory {
+struct node_type {
 	int id;
 	int num_machines;
 	int *end_times;
@@ -30,11 +29,8 @@ struct factory {
 struct node {
 	int id;
 	struct operation *op;
-	struct factory *factory;
+	struct node_type *type;
 	struct node *prev;
-
-	int serialized;
-	int start_time;
 };
 
 struct graph *construct_graph(struct instance *inst);

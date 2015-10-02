@@ -1,7 +1,7 @@
 #ifndef INSTANCE_H
 #define INSTANCE_H
 
-#define MAX_OPERATIONS         500
+#define MAX_OPERATIONS 500
 
 struct instance {
 	int num_types;

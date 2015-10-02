@@ -62,7 +62,7 @@ void print_schedule(struct schedule *sch)
 				for (o = 0; o < sch->inst->num_ops; ++o) {
 					if (sch->types[i].machines[j].op_start_times[o] == k) {
 						printf("%02d", o);
-						for (l = 2; l < sch->inst->ops[o].proc_time; ++l) {
+						for (l = 1; l < sch->inst->ops[o].proc_time; ++l) {
 							printf("==");
 							++k;
 						}

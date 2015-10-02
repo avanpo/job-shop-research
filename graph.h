@@ -9,14 +9,31 @@
 
 struct graph {
 	struct instance *inst;
+	int num_factories;
+	struct factory *factories;
 	int num_nodes;
 	struct node *nodes;
 	int arcs[MAX_OPERATIONS][MAX_OPERATIONS];
+
+	struct operation *last_op;
+	int makespan;
+};
+
+struct factory {
+	int id;
+	int num_machines;
+	int *end_times;
+	int num_ops;
+	int *ops_order;
 };
 
 struct node {
 	int id;
 	struct operation *op;
+	struct factory *factory;
+	struct node *prev;
+
+	int serialized;
 	int start_time;
 };
 

@@ -3,6 +3,7 @@
 #include "instance.h"
 #include "graph.h"
 #include "schedule.h"
+#include "search.h"
 
 int main(int argc, char **argv)
 {
@@ -12,15 +13,11 @@ int main(int argc, char **argv)
 	}
 
 	struct instance *inst = read_inst(fname);
-	struct graph *graph = construct_graph(inst);
+	struct sa_state *sa = construct_sa_search(inst);
 
-	init_graph(graph);
-	serialize_graph(graph);
+	start_sa_search(sa);
 
-	print_schedule_labeled(graph->schedule);
-	print_longest_path(graph);
-
-	destroy_graph(graph);
+	destroy_sa_search(sa);
 	destroy_inst(inst);
 
 	return 0;

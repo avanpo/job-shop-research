@@ -5,6 +5,7 @@
 #include "graph.h"
 #include "schedule.h"
 
+static void deserialize_graph(struct graph *graph);
 static int serialize_node(struct graph *graph, struct node *node);
 
 struct graph *construct_graph(struct instance *inst)
@@ -71,10 +72,12 @@ void init_graph(struct graph *graph)
 			}
 		}
 	}
+	serialize_graph(graph);
 }
 
 void serialize_graph(struct graph *graph)
 {
+	deserialize_graph(graph);
 	struct node *n, *last;
 
 	int *progress = calloc(graph->num_types, sizeof(int));
@@ -136,6 +139,21 @@ void swap_operations(struct node *n1, struct node *n2)
 	exit(EXIT_FAILURE);
 }
 
+int get_longest_path(struct graph *graph, int *path)
+{
+	int *reverse_path = calloc(graph->num_nodes, sizeof(int));
+	struct node *n;
+	int i, j;
+	for (i = 0, n = graph->last; n; ++i, n = n->prev_in_path) {
+		reverse_path[i] = n->id;
+	}
+	for (--i, j = 0; i >= 0; --i, ++j) {
+		path[j] = reverse_path[i];
+	}
+	free(reverse_path);
+	return j;
+}
+
 void print_graph(struct graph *graph)
 {
 	printf("Printing graph representation\n");
@@ -153,20 +171,19 @@ void print_graph(struct graph *graph)
 void print_longest_path(struct graph *graph)
 {
 	printf("Printing longest path (makespan %d)\n", graph->last->start_time + graph->last->op->proc_time);
-	struct node *n;
-	int *reverse_path = calloc(graph->num_nodes, sizeof(int));
-	int i;
-	for (i = 0, n = graph->last; n; ++i, n = n->prev_in_path) {
-		reverse_path[i] = n->id;
-	}
 	printf("time |  id | job | tp m | proc idle\n");
 	printf("-----+-----+-----+------+----------\n");
-	for (--i; i >= 0; --i) {
-		n = graph->nodes + reverse_path[i];
+	int *path = calloc(graph->num_nodes, sizeof(int));
+	int path_len = get_longest_path(graph, path);
+	struct node *n;
+	int i;
+	for (i = 0; i < path_len; ++i) {
+		n = graph->nodes + path[i];
 		printf("%4d |  %02d | %3d |  %1d %1d | %4d %4d\n", n->start_time, n->id, n->op->job->id, n->type->id,
 				n->machine, n->op->proc_time, n->op->idle_time);
 	}
 	printf("-----+-----+-----+------+----------\n");
+	free(path);
 }
 
 static int serialize_node(struct graph *graph, struct node *node)
@@ -208,4 +225,15 @@ static int serialize_node(struct graph *graph, struct node *node)
 	node->type->end_ops[machine] = node->id;
 
 	return finish_time;
+}
+
+static void deserialize_graph(struct graph *graph)
+{
+	int i, j;
+	for (i = 0; i < graph->num_types; ++i) {
+		for (j = 0; j < graph->types[i].num_machines; ++j) {
+			graph->types[i].end_times[j] = 0;
+			graph->types[i].end_ops[j] = 0;
+		}
+	}
 }

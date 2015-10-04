@@ -4,10 +4,6 @@
 #include "instance.h"
 #include "schedule.h"
 
-#define NO_ARC  0
-#define JOB_ARC 1
-#define ORD_ARC 2
-
 struct graph {
 	struct instance *inst;
 	int num_types;
@@ -46,6 +42,7 @@ void init_graph(struct graph *graph);
 void serialize_graph(struct graph *graph);
 
 void swap_operations(struct node *n1, struct node *n2);
+int get_longest_path(struct graph *graph, int *path);
 
 void print_graph(struct graph *graph);
 void print_longest_path(struct graph *graph);

@@ -28,6 +28,30 @@ struct schedule *construct_schedule(struct instance *inst)
 	return schedule;
 }
 
+struct schedule *copy_schedule(struct schedule *sch)
+{
+	struct schedule *copy = calloc(1, sizeof(struct schedule));
+	copy->inst = sch->inst;
+	copy->num_types = sch->num_types;
+
+	struct machine_type *types = calloc(sch->num_types, sizeof(struct machine_type));
+	copy->types = types;
+
+	int i, j, k;
+	for (i = 0; i < sch->num_types; ++i, ++types) {
+		types->num_machines = sch->types[i].num_machines;
+		struct machine *machines = calloc(types->num_machines, sizeof(struct machine));
+		types->machines = machines;
+		for (j = 0; j < types->num_machines; ++j, ++machines) {
+			machines->op_start_times = calloc(sch->inst->num_ops, sizeof(int));
+			for (k = 0; k < sch->inst->num_ops; ++k) {
+				machines->op_start_times[k] = sch->types[i].machines[j].op_start_times[k];
+			}
+		}
+	}
+	return copy;
+}
+
 void destroy_schedule(struct schedule *sch)
 {
 	int i, j;
@@ -107,10 +131,11 @@ void print_schedule_labeled(struct schedule *sch)
 	printf("+\n");
 	printf("| t | m |");
 	for (k = 0; k < sch->makespan; k += 2) {
-		printf("%-2d  ", k);
-	}
-	if (sch->makespan % 2 == 1) {
-		printf("  ");
+		if (k < sch->makespan - 1) {
+			printf("%-2d  ", k);
+		} else {
+			printf("%-2d", k);
+		}
 	}
 	printf("|\n+---+---+");
 	for (k = 0; k < sch->makespan; ++k) {
@@ -137,11 +162,7 @@ void print_schedule_labeled(struct schedule *sch)
 					printf("  ");
 				}
 			}
-			printf("|\n");
-		}
-	}
-	printf("+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
+			printf("|\n"); } } printf("+---+---+"); for (k = 0; k < sch->makespan; ++k) {
 		printf("--");
 	}
 	printf("+\n");

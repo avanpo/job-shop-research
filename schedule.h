@@ -20,6 +20,7 @@ struct machine {
 };
 
 struct schedule *construct_schedule(struct instance *inst);
+struct schedule *copy_schedule(struct schedule *sch);
 void destroy_schedule(struct schedule *sch);
 
 void print_schedule(struct schedule *sch);

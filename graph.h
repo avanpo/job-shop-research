@@ -22,6 +22,7 @@ struct node_type {
 	int *end_ops;
 	int num_ops;
 	int *ops_order;
+	int *ops_order_backup;
 };
 
 struct node {

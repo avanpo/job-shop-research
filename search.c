@@ -40,8 +40,9 @@ void start_sa_search(struct sa_state *sa)
 
 	int i, k;
 	int s;
-	for (k = 0, s = 0; sa->temp > 10.5; ++k, sa->temp *= sa->alpha) {
+	for (k = 0, s = 0; sa->temp > 14.5; ++k, sa->temp *= sa->alpha) {
 		for (i = 0, s = 0; i < sa->epoch_length; ++i) {
+			//if (i > 5) break;
 			s += perform_swap(g, sa->temp);
 			print_schedule_labeled(sa->graph->schedule);
 			print_longest_path(sa->graph);
@@ -137,7 +138,7 @@ static int perform_swap(struct graph *graph, double temp)
 	if (is_accepted(temp, old_makespan, new_makespan)) {
 		return 1;
 	} else {
-		swap_operations(n1, n2);
+		reverse_swap(n1->type);
 		serialize_graph(graph);
 		return 0;
 	}

@@ -5,8 +5,9 @@
 #include "graph.h"
 #include "schedule.h"
 
-static void deserialize_graph(struct graph *graph);
 static int serialize_node(struct graph *graph, struct node *node);
+static void deserialize_schedule_node(struct schedule *sch, struct node *node);
+static void deserialize_graph(struct graph *graph);
 
 struct graph *construct_graph(struct instance *inst)
 {
@@ -22,6 +23,8 @@ struct graph *construct_graph(struct instance *inst)
 
 	g->schedule = construct_schedule(inst);
 
+	int *backup = calloc(inst->num_ops, sizeof(int));
+
 	int i, j;
 	for (i = 0; i < inst->num_types; ++i, ++t) {
 		t->id = i;
@@ -30,6 +33,7 @@ struct graph *construct_graph(struct instance *inst)
 		t->end_ops = calloc(inst->types[i].num_machines, sizeof(int));
 		t->num_ops = inst->types[i].num_ops;
 		t->ops_order = calloc(inst->types[i].num_ops, sizeof(int));
+		t->ops_order_backup = backup;
 	}
 
 	for (i = 0; i < inst->num_ops; ++i, ++n) {
@@ -145,6 +149,8 @@ void swap_operations(struct node *n1, struct node *n2)
 		exit(EXIT_FAILURE);
 	}
 
+	printf("found op1 %d at index %d and op2 %d at index %d\n", n1->id, i1, n2->id, i2);
+
 	struct node *nodes = n1 - n1->id;
 	struct node *node;
 	int tmp, done = 0;
@@ -155,12 +161,52 @@ void swap_operations(struct node *n1, struct node *n2)
 		i1 = i2;
 		i2 = tmp;
 	}
-	for (i = i2; i >= i1; --i) {
-		node = nodes + i2 - 1;
-		if (
+	for (i = i2 - 1; i >= i1; --i) {
+		node = nodes + t->ops_order[i];
+		if (node->op->job->id != n2->op->job->id) {
+			t->ops_order[i2] = node->id;
+			t->ops_order[i] = n2->id;
+			i2 = i;
+			if (node == n1) {
+				++done;
+			}
+		} else {
+			break;
+		}
 	}
-	t->ops_order[a] = n2->id;
-	t->ops_order[b] = n1->id;
+	for (i = i1 + 1; i <= i2 && !done; ++i) {
+		node = nodes + t->ops_order[i];
+		if (node->op->job->id != n1->op->job->id) {
+			t->ops_order[i1] = node->id;
+			t->ops_order[i] = n1->id;
+			i1 = i;
+			if (node == n2) {
+				++done;
+			}
+		} else {
+			fprintf(stderr, "SHOULDN'T EVER HAPPEN EITHER :(\n"); // handle dis proeprly too
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	for (i = 0; i < t->num_ops; ++i) {
+		t->ops_order_backup[i] = t->ops_order[i];
+	}
+
+	if (done) {
+		return;
+	} else {
+		fprintf(stderr, "OH GOD NO\n"); //handle properlylt
+		exit(EXIT_FAILURE);
+	}
+}
+
+void reverse_swap(struct node_type *type)
+{
+	int i;
+	for (i = 0; i < type->num_ops; ++i) {
+		type->ops_order[i] = type->ops_order_backup[i];
+	}
 }
 
 int get_longest_path(struct graph *graph, int *path)
@@ -242,6 +288,7 @@ static int serialize_node(struct graph *graph, struct node *node)
 	}
 	int finish_time = start_time + node->op->proc_time;
 
+	deserialize_schedule_node(graph->schedule, node);
 	graph->schedule->types[node->type->id].machines[machine].op_start_times[node->id] = start_time;
 	node->start_time = start_time;
 	node->machine = machine;
@@ -249,6 +296,14 @@ static int serialize_node(struct graph *graph, struct node *node)
 	node->type->end_ops[machine] = node->id;
 
 	return finish_time;
+}
+
+static void deserialize_schedule_node(struct schedule *sch, struct node *node)
+{
+	int i;
+	for (i = 0; i < sch->types[node->type->id].num_machines; ++i) {
+		sch->types[node->type->id].machines[i].op_start_times[node->id] = -1;
+	}
 }
 
 static void deserialize_graph(struct graph *graph)

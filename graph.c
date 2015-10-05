@@ -83,10 +83,15 @@ void serialize_graph(struct graph *graph)
 	int *progress = calloc(graph->num_types, sizeof(int));
 	int *serialized = calloc(graph->num_nodes, sizeof(int));
 
-	int i, j, l, makespan = 0;
+	int i, j, jj, l, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
 		if (progress[j] == graph->types[j].num_ops) {
 			++j;
+			++jj;
+			if (jj > graph->num_nodes * graph->num_nodes) {
+				fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
+				exit(EXIT_FAILURE);
+			}
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
@@ -112,6 +117,9 @@ void serialize_graph(struct graph *graph)
 	free(serialized);
 }
 
+/* swap operation order while maintaining job operation precedence
+ * within machine ordering
+ */
 void swap_operations(struct node *n1, struct node *n2)
 {
 	if (n1->type != n2->type) {
@@ -121,22 +129,38 @@ void swap_operations(struct node *n1, struct node *n2)
 		fprintf(stderr, "Cannot swap operation %d with itself.\n", n1->id);
 		exit(EXIT_FAILURE);
 	}
+
 	struct node_type *t = n1->type;
-	int i, a, b;
-	for (i = 0, a = -1, b = -1; i < t->num_ops; ++i) {
+	int i, i1, i2;
+	for (i = 0, i1 = -1, i2 = -1; i < t->num_ops; ++i) {
 		if (t->ops_order[i] == n1->id) {
-			a = i;
+			i1 = i;
 		} else if (t->ops_order[i] == n2->id) {
-			b = i;
+			i2 = i;
 		}
 	}
-	if (a >= 0 && b >= 0) {
-		t->ops_order[a] = n2->id;
-		t->ops_order[b] = n1->id;
-		return;
+
+	if (i1 < 0 || i2 < 0) {
+		fprintf(stderr, "Cannot find operations %d and %d in machine type %d.\n", n1->id, n2->id, t->id);
+		exit(EXIT_FAILURE);
 	}
-	fprintf(stderr, "Cannot find operations %d and %d in machine type %d.\n", n1->id, n2->id, t->id);
-	exit(EXIT_FAILURE);
+
+	struct node *nodes = n1 - n1->id;
+	struct node *node;
+	int tmp, done = 0;
+	if (i1 > i2) {
+		fprintf(stderr, "SHOULDN'T EVER HAPPEN\n"); // handle this properly later pls
+		exit(EXIT_FAILURE);
+		tmp = i1;
+		i1 = i2;
+		i2 = tmp;
+	}
+	for (i = i2; i >= i1; --i) {
+		node = nodes + i2 - 1;
+		if (
+	}
+	t->ops_order[a] = n2->id;
+	t->ops_order[b] = n1->id;
 }
 
 int get_longest_path(struct graph *graph, int *path)

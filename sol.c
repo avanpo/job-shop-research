@@ -7,7 +7,7 @@
 
 int main(int argc, char **argv)
 {
-	char *fname = "instances/1.txt";
+	char *fname = "instances/17.txt";
 	if (argc == 2) {
 		fname = argv[1];
 	}

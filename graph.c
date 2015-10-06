@@ -59,6 +59,7 @@ void destroy_graph(struct graph *graph)
 		free(graph->types[i].end_ops);
 		free(graph->types[i].ops_order);
 	}
+	free(graph->types[0].ops_order_backup);
 	free(graph->types);
 	free(graph->nodes);
 	destroy_schedule(graph->schedule);
@@ -87,15 +88,15 @@ void serialize_graph(struct graph *graph)
 	int *progress = calloc(graph->num_types, sizeof(int));
 	int *serialized = calloc(graph->num_nodes, sizeof(int));
 
-	int i, j, jj, l, makespan = 0;
+	int i, j, l, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
+		if (loop_guard > graph->num_types) {
+			fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
+			exit(EXIT_FAILURE);
+		}
 		if (progress[j] == graph->types[j].num_ops) {
 			++j;
-			++jj;
-			if (jj > graph->num_nodes * graph->num_nodes) {
-				fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
-				exit(EXIT_FAILURE);
-			}
+			++loop_guard;
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
@@ -110,8 +111,10 @@ void serialize_graph(struct graph *graph)
 
 			++progress[j];
 			--i;
+			loop_guard = 0;
 		} else {
 			++j;
+			++loop_guard;
 		}
 	}
 	graph->last = last;

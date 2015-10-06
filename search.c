@@ -16,7 +16,7 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	srand(1);
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
-	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 10;
+	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 8;
 	sa->initial_temp = 15;
 	sa->alpha = 0.95;
 	
@@ -40,15 +40,13 @@ void start_sa_search(struct sa_state *sa)
 
 	int i, k;
 	int s;
-	for (k = 0, s = 0; sa->temp > 14.5; ++k, sa->temp *= sa->alpha) {
+	int done = 0;
+	for (k = 0, s = 0; sa->temp > 1.5 && !done; ++k, sa->temp *= sa->alpha) {
 		for (i = 0, s = 0; i < sa->epoch_length; ++i) {
-			//if (i > 5) break;
 			s += perform_swap(g, sa->temp);
-			print_schedule_labeled(sa->graph->schedule);
-			print_longest_path(sa->graph);
 		}
 		print_sa_epoch_stats(sa, k, s);
-		print_schedule_labeled(sa->graph->schedule);
+		print_graph(sa->graph);
 	}
 }
 

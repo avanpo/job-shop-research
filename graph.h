@@ -43,6 +43,7 @@ void init_graph(struct graph *graph);
 void serialize_graph(struct graph *graph);
 
 void swap_operations(struct node *n1, struct node *n2);
+void reverse_swap(struct node_type *type);
 int get_longest_path(struct graph *graph, int *path);
 
 void print_graph(struct graph *graph);

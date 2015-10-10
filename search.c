@@ -23,6 +23,8 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	struct graph *graph = construct_graph(inst);
 	init_graph(graph);
 	sa->graph = graph;
+
+	return sa;
 }
 
 void destroy_sa_search(struct sa_state *sa)
@@ -126,17 +128,21 @@ static int perform_swap(struct graph *graph, double temp)
 		return 0;
 	}
 	struct node *n1 = n2->prev_in_path;
-	printf("swapping operations %d and %d\n", n1->id, n2->id);
+	printf("swapping  %d and %d (type %d)\n", n1->id, n2->id, n1->type->id);
 
 	swap_operations(n1, n2);
 	print_graph(graph);
 	serialize_graph(graph);
+	print_longest_path(graph);
+	print_schedule_labeled(graph->schedule, 1180, 200);
+	printf("61 scheduled at %d and 56 scheduled at %d\n\n", graph->nodes[61].start_time, graph->nodes[56].start_time);
 
 	int new_makespan = graph->schedule->makespan;
 	if (is_accepted(temp, old_makespan, new_makespan)) {
 		return 1;
 	} else {
 		reverse_swap(n1->type);
+		printf("reversed  %d and %d (type %d)\n", n1->id, n2->id, n1->type->id);
 		serialize_graph(graph);
 		return 0;
 	}

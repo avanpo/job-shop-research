@@ -120,32 +120,36 @@ void print_schedule(struct schedule *sch)
 	printf("+\n");
 }
 
-void print_schedule_labeled(struct schedule *sch)
+void print_schedule_labeled(struct schedule *sch, int start, int len)
 {
 	printf("Printing schedule (makespan %d)\n", sch->makespan);
+	int end = start + len;
+	if (len == 0) {
+		end = sch->makespan;
+	}
 	int i, j, k, o, l;
 	printf("+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
+	for (k = start; k < end; ++k) {
 		printf("--");
 	}
 	printf("+\n");
 	printf("| t | m |");
-	for (k = 0; k < sch->makespan; k += 2) {
-		if (k < sch->makespan - 1) {
+	for (k = start; k < end; k += 2) {
+		if (k < end - 1) {
 			printf("%-2d  ", k);
 		} else {
 			printf("%-2d", k);
 		}
 	}
 	printf("|\n+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
+	for (k = start; k < end; ++k) {
 		printf("--");
 	}
 	printf("+\n");
 	for (i = 0; i < sch->num_types; ++i) {
 		for (j = 0; j < sch->types[i].num_machines; ++j) {
 			printf("| %1d | %1d |", i, j);
-			for (k = 0; k < sch->makespan; ++k) {
+			for (k = start; k < end; ++k) {
 				int flag = 0;
 				for (o = 0; o < sch->inst->num_ops; ++o) {
 					if (sch->types[i].machines[j].op_start_times[o] == k) {
@@ -162,7 +166,11 @@ void print_schedule_labeled(struct schedule *sch)
 					printf("  ");
 				}
 			}
-			printf("|\n"); } } printf("+---+---+"); for (k = 0; k < sch->makespan; ++k) {
+			printf("|\n");
+		}
+	} 
+	printf("+---+---+");
+	for (k = start; k < end; ++k) {
 		printf("--");
 	}
 	printf("+\n");

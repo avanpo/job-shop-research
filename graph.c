@@ -91,6 +91,12 @@ void serialize_graph(struct graph *graph)
 	int i, j, l, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
 		if (loop_guard > graph->num_types) {
+			int m, n;
+			printf("serialized:");
+			for (m = 0; m < graph->num_nodes; ++m) {
+				if (serialized[m]) printf(" %2d", m);
+			}
+			printf("\n");
 			fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -152,7 +158,7 @@ void swap_operations(struct node *n1, struct node *n2)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("found op1 %d at index %d and op2 %d at index %d\n", n1->id, i1, n2->id, i2);
+	printf("found:    op1 %d (ind:%d) and op2 %d (ind:%d)\n", n1->id, i1, n2->id, i2);
 
 	struct node *nodes = n1 - n1->id;
 	struct node *node;

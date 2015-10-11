@@ -7,6 +7,7 @@
 
 #include "search.h"
 
+static void replace_best_schedule(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
 static void print_sa_epoch_stats(struct sa_state *sa);
@@ -51,9 +52,18 @@ void start_sa_search(struct sa_state *sa)
 	for (sa->k = 0; !done; ++sa->k) {
 		for (i = 0; i < sa->epoch_length; ++i) {
 			sa->successes += perform_swap(g, sa->temp);
+			if (sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
+				replace_best_schedule(sa);
+			}
 		}
 		done = handle_epoch(sa);
 	}
+}
+
+static void replace_best_schedule(struct sa_state *sa)
+{
+	free(sa->best);
+	sa->best = copy_schedule(sa->graph->schedule);
 }
 
 static int handle_epoch(struct sa_state *sa)

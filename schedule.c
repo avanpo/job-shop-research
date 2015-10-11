@@ -49,6 +49,7 @@ struct schedule *copy_schedule(struct schedule *sch)
 			}
 		}
 	}
+	copy->makespan = sch->makespan;
 	return copy;
 }
 
@@ -65,7 +66,7 @@ void destroy_schedule(struct schedule *sch)
 	free(sch);
 }
 
-void print_schedule_labeled(struct schedule *sch, int start, int len)
+void print_schedule(struct schedule *sch, int start, int len)
 {
 	int end = start + len;
 	if (len == 0 || end > sch->makespan) {

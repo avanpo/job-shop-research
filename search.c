@@ -10,6 +10,7 @@
 static void replace_best_schedule(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
+static void print_sa_search_end(struct sa_state *sa);
 static void print_sa_epoch_stats(struct sa_state *sa);
 static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
@@ -58,6 +59,7 @@ void start_sa_search(struct sa_state *sa)
 		}
 		done = handle_epoch(sa);
 	}
+	print_sa_search_end(sa);
 }
 
 static void replace_best_schedule(struct sa_state *sa)
@@ -85,9 +87,19 @@ static int handle_epoch(struct sa_state *sa)
 
 static void print_sa_search_start(struct sa_state *sa)
 {
+	int min = min_job_makespan(sa->graph->inst);
+
+	printf("\n");
 	printf("Starting simulated annealing.\n");
 	printf("Chosen parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
 	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
+	printf("  Min job makespan: %d\n", min);
+}
+
+static void print_sa_search_end(struct sa_state *sa)
+{
+	//print_schedule(sa->best);
+	printf("\n");
 }
 
 static void print_sa_epoch_stats(struct sa_state *sa)

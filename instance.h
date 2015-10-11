@@ -37,6 +37,8 @@ struct operation {
 struct instance *read_inst(char *fname);
 void destroy_inst(struct instance *inst);
 
+int min_job_makespan(struct instance *inst);
+
 void print_inst(struct instance *inst);
 
 #endif

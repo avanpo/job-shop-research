@@ -83,6 +83,23 @@ void destroy_inst(struct instance *inst)
 	free(inst);
 }
 
+int min_job_makespan(struct instance *inst)
+{
+	int longest = 0;
+	int i, j, l;
+	for (i = 0; i < inst->num_jobs; ++i) {
+		l = 0;
+		for (j = 0; j < inst->jobs[i].num_ops; ++j) {
+			l += inst->jobs[i].ops[j].proc_time + inst->jobs[i].ops[j].idle_time;
+		}
+		l -= inst->jobs[i].ops[j - 1].idle_time;
+		if (l > longest) {
+			longest = l;
+		}
+	}
+	return longest;
+}
+
 void print_inst(struct instance *inst)
 {
 	int t, j, o, to;

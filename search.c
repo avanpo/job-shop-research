@@ -7,6 +7,9 @@
 
 #include "search.h"
 
+static int handle_epoch(struct sa_state *sa);
+static void print_sa_search_start(struct sa_state *sa);
+static void print_sa_epoch_stats(struct sa_state *sa);
 static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
@@ -24,12 +27,15 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	init_graph(graph);
 	sa->graph = graph;
 
+	sa->best = copy_schedule(graph->schedule);
+
 	return sa;
 }
 
 void destroy_sa_search(struct sa_state *sa)
 {
 	destroy_graph(sa->graph);
+	destroy_schedule(sa->best);
 	free(sa);
 }
 
@@ -40,30 +46,45 @@ void start_sa_search(struct sa_state *sa)
 
 	struct graph *g = sa->graph;
 
-	int i, k;
-	int s;
+	int i;
 	int done = 0;
-	for (k = 0, s = 0; sa->temp > 1.5 && !done; ++k, sa->temp *= sa->alpha) {
-		for (i = 0, s = 0; i < sa->epoch_length; ++i) {
-			s += perform_swap(g, sa->temp);
+	for (sa->k = 0; !done; ++sa->k) {
+		for (i = 0; i < sa->epoch_length; ++i) {
+			sa->successes += perform_swap(g, sa->temp);
 		}
-		print_sa_epoch_stats(sa, k, s);
-		print_graph(sa->graph);
+		done = handle_epoch(sa);
 	}
 }
 
-void print_sa_search_start(struct sa_state *sa)
+static int handle_epoch(struct sa_state *sa)
+{
+	print_sa_epoch_stats(sa);
+
+	sa->temp *= sa->alpha;
+
+	int done = 0;
+	if (sa->temp < 1.5 || sa->graph->schedule->makespan == sa->prev_makespan) {
+		++done;
+	}
+
+	sa->successes = 0;
+	sa->prev_makespan = sa->graph->schedule->makespan;
+
+	return done;
+}
+
+static void print_sa_search_start(struct sa_state *sa)
 {
 	printf("Starting simulated annealing.\n");
 	printf("Chosen parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
-	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
+	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
 }
 
-void print_sa_epoch_stats(struct sa_state *sa, int k, int s)
+static void print_sa_epoch_stats(struct sa_state *sa)
 {
-	printf("Epoch: %d\n", k);
+	printf("Epoch: %d (T = %.1f)\n", sa->k, sa->temp);
 	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
-	printf("  Success rate: %.1f (out of %d swaps)\n", 100 * (double)s / (double)sa->epoch_length, sa->epoch_length);
+	printf("  Success rate: %.1f%% (out of %d swaps)\n", 100 * (double)sa->successes / (double)sa->epoch_length, sa->epoch_length);
 }
 
 /* takes serialized graph, selects random operation on the
@@ -81,7 +102,7 @@ static struct node *get_swap_possibility(struct graph *graph)
 	for (i = 0, j = 0; i < path_len - 1; ++i) {
 		n1 = graph->nodes + path[i];
 		n2 = graph->nodes + path[i + 1];
-		if (n1->machine == n2->machine && n1->op->job->id != n2->op->job->id) {
+		if (n1->type == n2->type && n1->op->job->id != n2->op->job->id) {
 			possible[j] = path[i + 1];
 			++j;
 		}
@@ -128,21 +149,15 @@ static int perform_swap(struct graph *graph, double temp)
 		return 0;
 	}
 	struct node *n1 = n2->prev_in_path;
-	printf("swapping  %d and %d (type %d)\n", n1->id, n2->id, n1->type->id);
 
 	swap_operations(n1, n2);
-	print_graph(graph);
 	serialize_graph(graph);
-	print_longest_path(graph);
-	print_schedule_labeled(graph->schedule, 1180, 200);
-	printf("61 scheduled at %d and 56 scheduled at %d\n\n", graph->nodes[61].start_time, graph->nodes[56].start_time);
 
 	int new_makespan = graph->schedule->makespan;
 	if (is_accepted(temp, old_makespan, new_makespan)) {
 		return 1;
 	} else {
 		reverse_swap(n1->type);
-		printf("reversed  %d and %d (type %d)\n", n1->id, n2->id, n1->type->id);
 		serialize_graph(graph);
 		return 0;
 	}

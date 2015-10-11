@@ -9,7 +9,10 @@ struct sa_state {
 	double alpha;
 
 	struct graph *graph;
+	int k;
 	double temp;
+	int successes;
+	int prev_makespan;
 
 	struct schedule *best;
 };
@@ -18,8 +21,5 @@ struct sa_state *construct_sa_search(struct instance *inst);
 void destroy_sa_search(struct sa_state *sa);
 
 void start_sa_search(struct sa_state *sa);
-
-void print_sa_search_start(struct sa_state *sa);
-void print_sa_epoch_stats(struct sa_state *sa, int k, int s);
 
 #endif

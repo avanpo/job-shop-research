@@ -91,12 +91,12 @@ void serialize_graph(struct graph *graph)
 	int i, j, l, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
 		if (loop_guard > graph->num_types) {
-			int m, n;
+			/*int m, n;
 			printf("serialized:");
 			for (m = 0; m < graph->num_nodes; ++m) {
 				if (serialized[m]) printf(" %2d", m);
 			}
-			printf("\n");
+			printf("\n");*/
 			fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -150,6 +150,7 @@ void swap_operations(struct node *n1, struct node *n2)
 			i1 = i;
 		} else if (t->ops_order[i] == n2->id) {
 			i2 = i;
+			break;
 		}
 	}
 
@@ -158,18 +159,11 @@ void swap_operations(struct node *n1, struct node *n2)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("found:    op1 %d (ind:%d) and op2 %d (ind:%d)\n", n1->id, i1, n2->id, i2);
-
+	// incrementally move n2 forward, then if the operations haven't
+	// been switched yet, incrementally move n1 backward
 	struct node *nodes = n1 - n1->id;
 	struct node *node;
-	int tmp, done = 0;
-	if (i1 > i2) {
-		fprintf(stderr, "SHOULDN'T EVER HAPPEN\n"); // handle this properly later pls
-		exit(EXIT_FAILURE);
-		tmp = i1;
-		i1 = i2;
-		i2 = tmp;
-	}
+	int done = 0;
 	for (i = i2 - 1; i >= i1; --i) {
 		node = nodes + t->ops_order[i];
 		if (node->op->job->id != n2->op->job->id) {
@@ -193,8 +187,7 @@ void swap_operations(struct node *n1, struct node *n2)
 				++done;
 			}
 		} else {
-			fprintf(stderr, "SHOULDN'T EVER HAPPEN EITHER :(\n"); // handle dis proeprly too
-			exit(EXIT_FAILURE);
+			break;
 		}
 	}
 
@@ -205,7 +198,7 @@ void swap_operations(struct node *n1, struct node *n2)
 	if (done) {
 		return;
 	} else {
-		fprintf(stderr, "OH GOD NO\n"); //handle properlylt
+		fprintf(stderr, "Something went wrong swapping operations %d and %d in machine type %d.\n", n1->id, n2->id, t->id);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -287,20 +280,33 @@ static int serialize_node(struct graph *graph, struct node *node)
 		}
 	}
 
+	// do not schedule operation until start time of previous
+	// operation to preserve ordering
+	if (machine_release < node->type->prev_start_time) {
+		machine_release = node->type->prev_start_time;
+	}
+
 	int start_time;
 	if (job_release >= machine_release) {
 		start_time = job_release;
 		node->prev_in_path = node->prev;
 	} else {
 		start_time = machine_release;
-		node->prev_in_path = graph->nodes + node->type->end_ops[machine];
+		if (machine_release == node->type->prev_start_time && machine_release != 0) {
+			node->prev_in_path = graph->nodes + node->type->prev_start_op;
+		} else {
+			node->prev_in_path = graph->nodes + node->type->end_ops[machine];
+		}
 	}
+
 	int finish_time = start_time + node->op->proc_time;
 
 	deserialize_schedule_node(graph->schedule, node);
 	graph->schedule->types[node->type->id].machines[machine].op_start_times[node->id] = start_time;
 	node->start_time = start_time;
 	node->machine = machine;
+	node->type->prev_start_op = start_time > node->type->prev_start_time ? node->id : node->type->prev_start_op;
+	node->type->prev_start_time = start_time;
 	node->type->end_times[machine] = finish_time;
 	node->type->end_ops[machine] = node->id;
 
@@ -319,6 +325,8 @@ static void deserialize_graph(struct graph *graph)
 {
 	int i, j;
 	for (i = 0; i < graph->num_types; ++i) {
+		graph->types[i].prev_start_time = 0;
+		graph->types[i].prev_start_op = 0;
 		for (j = 0; j < graph->types[i].num_machines; ++j) {
 			graph->types[i].end_times[j] = 0;
 			graph->types[i].end_ops[j] = 0;

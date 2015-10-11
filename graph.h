@@ -18,6 +18,8 @@ struct graph {
 struct node_type {
 	int id;
 	int num_machines;
+	int prev_start_time;
+	int prev_start_op;
 	int *end_times;
 	int *end_ops;
 	int num_ops;

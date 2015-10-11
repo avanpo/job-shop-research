@@ -65,68 +65,13 @@ void destroy_schedule(struct schedule *sch)
 	free(sch);
 }
 
-void print_schedule(struct schedule *sch)
-{
-	printf("Printing schedule (makespan %d)\n", sch->makespan);
-	int i, j, k, o, l;
-	printf("+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
-		printf("-");
-	}
-	printf("+\n");
-	printf("| t | m |");
-	for (k = 0; k < sch->makespan - 1; k += 4) {
-		if (k < sch->makespan - 3) {
-			printf("%-2d  ", k);
-		} else {
-			printf("%-2d", k);
-		}
-	}
-	for (k = 0; k < sch->makespan % 2; ++k) {
-		printf(" ");
-	}
-	printf("|\n+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
-		printf("-");
-	}
-	printf("+\n");
-	for (i = 0; i < sch->num_types; ++i) {
-		for (j = 0; j < sch->types[i].num_machines; ++j) {
-			printf("| %1d | %1d |", i, j);
-			for (k = 0; k < sch->makespan;) {
-				int flag = 0;
-				for (o = 0; o < sch->inst->num_ops; ++o) {
-					if (sch->types[i].machines[j].op_start_times[o] == k) {
-						for (l = 0; l < sch->inst->ops[o].proc_time; ++l) {
-							printf("=");
-							++k;
-						}
-						flag++;
-						break;
-					}
-				}
-				if (!flag) {
-					++k;
-					printf(" ");
-				}
-			}
-			printf("|\n");
-		}
-	}
-	printf("+---+---+");
-	for (k = 0; k < sch->makespan; ++k) {
-		printf("-");
-	}
-	printf("+\n");
-}
-
 void print_schedule_labeled(struct schedule *sch, int start, int len)
 {
-	printf("Printing schedule (makespan %d)\n", sch->makespan);
 	int end = start + len;
-	if (len == 0) {
+	if (len == 0 || end > sch->makespan) {
 		end = sch->makespan;
 	}
+	printf("Printing schedule (makespan %d) from time %d to %d.\n", sch->makespan, start, end);
 	int i, j, k, o, l;
 	printf("+---+---+");
 	for (k = start; k < end; ++k) {
@@ -154,7 +99,7 @@ void print_schedule_labeled(struct schedule *sch, int start, int len)
 				for (o = 0; o < sch->inst->num_ops; ++o) {
 					if (sch->types[i].machines[j].op_start_times[o] == k) {
 						printf("%02d", o);
-						for (l = 1; l < sch->inst->ops[o].proc_time; ++l) {
+						for (l = 1; l < sch->inst->ops[o].proc_time && k + 1 < end; ++l) {
 							printf("==");
 							++k;
 						}

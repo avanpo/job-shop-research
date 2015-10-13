@@ -121,3 +121,31 @@ void print_inst(struct instance *inst)
 		}
 	}
 }
+
+void print_inst_info(struct instance *inst)
+{
+	printf("Printing instance info\n");
+	int i, total, low, high;
+	printf("  %d machine types\n", inst->num_types);
+	for (i = 0, total = 0, low = MAX_OPERATIONS, high = 0; i < inst->num_types; ++i) {
+		total += inst->types[i].num_machines;
+		if (inst->types[i].num_machines < low) {
+			low = inst->types[i].num_machines;
+		}
+		if (inst->types[i].num_machines > high) {
+			high = inst->types[i].num_machines;
+		}
+	}
+	printf("  %d total machines ranging from %d to %d per type\n", total, low, high);
+	printf("  %d jobs\n", inst->num_jobs);
+	for (i = 0, total = 0, low = MAX_OPERATIONS, high = 0; i < inst->num_jobs; ++i) {
+		total += inst->jobs[i].num_ops;
+		if (inst->jobs[i].num_ops < low) {
+			low = inst->jobs[i].num_ops;
+		}
+		if (inst->jobs[i].num_ops > high) {
+			high = inst->jobs[i].num_ops;
+		}
+	}
+	printf("  %d total operations ranging from %d to %d per job\n", total, low, high);
+}

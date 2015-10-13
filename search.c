@@ -90,10 +90,11 @@ static void print_sa_search_start(struct sa_state *sa)
 	int min = min_job_makespan(sa->graph->inst);
 
 	printf("\n");
-	printf("Starting simulated annealing.\n");
-	printf("Chosen parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
+	print_inst_info(sa->graph->inst);
+	printf("Chosen search parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
 	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
 	printf("  Min job makespan: %d\n", min);
+	printf("Starting simulated annealing.\n");
 }
 
 static void print_sa_search_end(struct sa_state *sa)

@@ -1,7 +1,7 @@
 #ifndef INSTANCE_H
 #define INSTANCE_H
 
-#define MAX_OPERATIONS 500
+#define MAX_OPERATIONS 5000
 
 struct instance {
 	int num_types;
@@ -40,5 +40,6 @@ void destroy_inst(struct instance *inst);
 int min_job_makespan(struct instance *inst);
 
 void print_inst(struct instance *inst);
+void print_inst_info(struct instance *inst);
 
 #endif

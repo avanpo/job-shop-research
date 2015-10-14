@@ -56,6 +56,8 @@ struct instance *read_inst(char fname[])
 	inst->jobs = jobs;
 	inst->ops = ops;
 
+	inst->max_job_makespan = max_job_makespan(inst);
+
 	// bind types to their operations
 	for (t = 0, type = inst->types, count = 0; t < num_types; ++t, ++type, count = 0) {
 		type->ops = calloc(inst->num_ops, sizeof(int));
@@ -83,7 +85,7 @@ void destroy_inst(struct instance *inst)
 	free(inst);
 }
 
-int min_job_makespan(struct instance *inst)
+int max_job_makespan(struct instance *inst)
 {
 	int longest = 0;
 	int i, j, l;
@@ -148,4 +150,5 @@ void print_inst_info(struct instance *inst)
 		}
 	}
 	printf("  %d total operations ranging from %d to %d per job\n", total, low, high);
+	printf("  Max job makespan: %d\n", inst->max_job_makespan);
 }

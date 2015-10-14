@@ -8,6 +8,7 @@
 #include "search.h"
 
 static void replace_best_schedule(struct sa_state *sa);
+static int handle_restart(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
 static void print_sa_search_end(struct sa_state *sa);
@@ -21,7 +22,7 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	srand(1);
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
-	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 8;
+	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 10;
 	sa->initial_temp = 15;
 	sa->alpha = 0.95;
 	
@@ -41,23 +42,26 @@ void destroy_sa_search(struct sa_state *sa)
 	free(sa);
 }
 
-void start_sa_search(struct sa_state *sa)
+void start_sa_search(struct sa_state *sa, int restarts)
 {
 	print_sa_search_start(sa);
-	sa->temp = sa->initial_temp;
 
 	struct graph *g = sa->graph;
 
-	int i;
+	int i, j;
 	int done = 0;
-	for (sa->k = 0; !done; ++sa->k) {
-		for (i = 0; i < sa->epoch_length; ++i) {
-			sa->successes += perform_swap(g, sa->temp);
-			if (sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
-				replace_best_schedule(sa);
+	for (j = 0; j <= restarts && !done; ++j) {
+		sa->temp = sa->initial_temp;
+		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
+			for (i = 0; i < sa->epoch_length; ++i) {
+				sa->successes += perform_swap(g, sa->temp);
+				if (sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
+					replace_best_schedule(sa);
+				}
 			}
+			done = handle_epoch(sa);
 		}
-		done = handle_epoch(sa);
+		done = handle_restart(sa);
 	}
 	print_sa_search_end(sa);
 }
@@ -68,38 +72,44 @@ static void replace_best_schedule(struct sa_state *sa)
 	sa->best = copy_schedule(sa->graph->schedule);
 }
 
+static int handle_restart(struct sa_state *sa)
+{
+	int done = 0;
+
+	if (sa->graph->schedule->makespan == sa->prev_makespan) {
+		++done;
+	}
+
+	sa->prev_makespan = sa->graph->schedule->makespan;
+
+	return done;
+}
+
 static int handle_epoch(struct sa_state *sa)
 {
 	print_sa_epoch_stats(sa);
 
 	sa->temp *= sa->alpha;
 
-	int done = 0;
-	if (sa->temp < 1.5 || sa->graph->schedule->makespan == sa->prev_makespan) {
-		++done;
-	}
-
 	sa->successes = 0;
-	sa->prev_makespan = sa->graph->schedule->makespan;
 
-	return done;
+	return sa->best->makespan == sa->graph->inst->max_job_makespan;
 }
 
 static void print_sa_search_start(struct sa_state *sa)
 {
-	int min = min_job_makespan(sa->graph->inst);
-
 	printf("\n");
 	print_inst_info(sa->graph->inst);
 	printf("Chosen search parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
 	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
-	printf("  Min job makespan: %d\n", min);
 	printf("Starting simulated annealing.\n");
 }
 
 static void print_sa_search_end(struct sa_state *sa)
 {
-	//print_schedule(sa->best);
+	printf("\n");
+	print_inst_info(sa->graph->inst);
+	printf("Best solution found: \033[1m%d\033[0m\n", sa->best->makespan);
 	printf("\n");
 }
 

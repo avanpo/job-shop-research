@@ -68,7 +68,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 
 static void replace_best_schedule(struct sa_state *sa)
 {
-	free(sa->best);
+	destroy_schedule(sa->best);
 	sa->best = copy_schedule(sa->graph->schedule);
 }
 

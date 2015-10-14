@@ -25,7 +25,7 @@ struct graph *construct_graph(struct instance *inst)
 
 	int *backup = calloc(inst->num_ops, sizeof(int));
 
-	int i, j;
+	int i;
 	for (i = 0; i < inst->num_types; ++i, ++t) {
 		t->id = i;
 		t->num_machines = inst->types[i].num_machines;

@@ -80,7 +80,7 @@ void init_graph(struct graph *graph)
 	serialize_graph(graph);
 }
 
-void serialize_graph(struct graph *graph)
+int serialize_graph(struct graph *graph)
 {
 	deserialize_graph(graph);
 	struct node *n, *last;
@@ -91,14 +91,8 @@ void serialize_graph(struct graph *graph)
 	int i, j, l, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
 		if (loop_guard > graph->num_types) {
-			/*int m, n;
-			printf("serialized:");
-			for (m = 0; m < graph->num_nodes; ++m) {
-				if (serialized[m]) printf(" %2d", m);
-			}
-			printf("\n");*/
 			fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
-			exit(EXIT_FAILURE);
+			return 1;
 		}
 		if (progress[j] == graph->types[j].num_ops) {
 			++j;
@@ -128,6 +122,7 @@ void serialize_graph(struct graph *graph)
 
 	free(progress);
 	free(serialized);
+	return 0;
 }
 
 /* swap operation order while maintaining job operation precedence

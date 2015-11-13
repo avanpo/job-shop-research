@@ -55,7 +55,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
 			for (i = 0; i < sa->epoch_length; ++i) {
 				sa->successes += perform_swap(g, sa->temp);
-				if (sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
+				if (0) {//sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
 					replace_best_schedule(sa);
 				}
 			}
@@ -183,11 +183,13 @@ static int perform_swap(struct graph *graph, double temp)
 	}
 	struct node *n1 = n2->prev_in_path;
 
+	//if (n1->id == 1225 && n2->id == 1298) print_longest_path(graph); //
+	//if (n1->id == 1225 && n2->id == 1298) print_graph(graph); //
 	swap_operations(n1, n2);
-	serialize_graph(graph);
+	int not_serialized = serialize_graph(graph);
 
 	int new_makespan = graph->schedule->makespan;
-	if (is_accepted(temp, old_makespan, new_makespan)) {
+	if (!not_serialized && is_accepted(temp, old_makespan, new_makespan)) {
 		return 1;
 	} else {
 		reverse_swap(n1->type);

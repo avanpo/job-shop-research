@@ -19,7 +19,7 @@ The goal is to minimize the completion time of the last job (makespan).
 
 ## Approach
 
-This is an NP hard problem. Although exact methods exist, they quickly become infeasible for large instances. Previous research showed that exact methods for instances with as little as 100 operations can take upwards of 4 hours to calculate.
+This is an NP hard problem. Although exact methods exist, they quickly become infeasible for large instances. Previous research showed that exact methods for instances with as little as 100 operations can take approximately 2 hours to calculate.
 
 This project looks at the efficacy of a local search approach.
 
@@ -27,18 +27,22 @@ This project looks at the efficacy of a local search approach.
 
 Note that this code is a first draft. It has not been optimized, nor has it been coded with extensibility and/or readability in mind.
 
+There is a makefile provided. On a unix machine, simply type `make` to build.
+
 ## Performance
 
-For some instances (those with sufficient machines relative to jobs), the lower bound given by the maximum job makespan is equal to the makespan of the optimal solution. This gives us certainty that we have found the optimal solution. These solutions are marked as such.
+For some instances (those with sufficient machines relative to jobs), the lower bound given by the maximum job makespan is equal to the makespan of the optimal solution. This gives us certainty that we have found the optimal solution, whereas this is impossible to determine otherwise. The solutions with this property are marked as such.
 
 For instances with machine scarcity, the time shown is the time it took until there were 5 restarts that did not result in a better makespan. The assumption made is that the makespan is reasonably close to optimal at that point. The makespan does tend to converge quite fast, so more than 80% of the time is spent eeking out an extra 10% on the makespan.
 
 total ops | jobs | types | total machines | time     | optimal
-----------|------|-------|----------------|----------|--------
+----------|------|-------|----------------|---------:|--------
       368 |   32 |     6 |             45 |     0:00 |     YES
       344 |   32 |     2 |              5 |     0:02 |
      1445 |   64 |    12 |            160 |     0:09 |     YES
      1555 |   64 |     4 |             16 |     1:45 |
      6258 |  128 |    24 |            436 |    13:23 |     YES
 
-For comparison, an instance with 100 total operations took >4 hours to solve using exact methods.
+The times listed were for an Intel Core i3 M370 @ 2.40 Hz CPU.
+
+For comparison, an instance with 100 total operations took ~2 hours to solve using exact methods.

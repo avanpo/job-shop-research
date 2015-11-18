@@ -5,6 +5,8 @@
 #include "graph.h"
 #include "schedule.h"
 
+static struct graph *graph;
+
 static int serialize_node(struct graph *graph, struct node *node);
 static void deserialize_schedule_node(struct schedule *sch, struct node *node);
 static void deserialize_graph(struct graph *graph);
@@ -14,6 +16,8 @@ struct graph *construct_graph(struct instance *inst)
 	struct graph *g = calloc(1, sizeof(struct graph));
 	struct node_type *t = calloc(inst->num_types, sizeof(struct node_type));
 	struct node *n = calloc(inst->num_ops, sizeof(struct node));
+
+	graph = g;
 
 	g->inst = inst;
 	g->num_types = inst->num_types;
@@ -83,7 +87,7 @@ void init_graph(struct graph *graph)
 int serialize_graph(struct graph *graph)
 {
 	deserialize_graph(graph);
-	struct node *n, *last;
+	struct node *n, *last = NULL;
 
 	int *progress = calloc(graph->num_types, sizeof(int));
 	int *serialized = calloc(graph->num_nodes, sizeof(int));
@@ -91,8 +95,9 @@ int serialize_graph(struct graph *graph)
 	int i, j, l, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
 		if (loop_guard > graph->num_types) {
-			fprintf(stderr, "Cannot serialize graph, graph is not acyclic.\n");
-			return 1;
+			free(progress);
+			free(serialized);
+			return 0;
 		}
 		if (progress[j] == graph->types[j].num_ops) {
 			++j;
@@ -122,7 +127,7 @@ int serialize_graph(struct graph *graph)
 
 	free(progress);
 	free(serialized);
-	return 0;
+	return 1;
 }
 
 /* swap operation order while maintaining job operation precedence
@@ -152,6 +157,11 @@ void swap_operations(struct node *n1, struct node *n2)
 	if (i1 < 0 || i2 < 0) {
 		fprintf(stderr, "Cannot find operations %d and %d in machine type %d.\n", n1->id, n2->id, t->id);
 		exit(EXIT_FAILURE);
+	}
+
+	// backup the order, in case the swap needs to be reversed
+	for (i = 0; i < t->num_ops; ++i) {
+		t->ops_order_backup[i] = t->ops_order[i];
 	}
 
 	// incrementally move n2 forward, then if the operations haven't
@@ -184,10 +194,6 @@ void swap_operations(struct node *n1, struct node *n2)
 		} else {
 			break;
 		}
-	}
-
-	for (i = 0; i < t->num_ops; ++i) {
-		t->ops_order_backup[i] = t->ops_order[i];
 	}
 
 	if (done) {
@@ -229,10 +235,24 @@ void print_graph(struct graph *graph)
 		printf("type %d: %d machines\n", i, graph->types[i].num_machines);
 		printf("  operation priority:");
 		for (j = 0; j < graph->types[i].num_ops; ++j) {
-			printf(" %2d", graph->types[i].ops_order[j]);
+			printf(" %d", graph->types[i].ops_order[j]);
 		}
 		printf("\n");
 	}
+}
+
+void print_type(struct node_type *t, int backup)
+{
+	printf("Printing type %d[%d] order%s\n", t->id, t->num_machines, backup ? " (backup)" : "");
+	int i;
+	for (i = 0; i < t->num_ops; ++i) {
+		if (!backup) {
+			printf(" %d", t->ops_order[i]);
+		} else {
+			printf(" %d", t->ops_order_backup[i]);
+		}
+	}
+	printf("\n");
 }
 
 void print_longest_path(struct graph *graph)

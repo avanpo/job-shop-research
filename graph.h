@@ -49,6 +49,7 @@ void reverse_swap(struct node_type *type);
 int get_longest_path(struct graph *graph, int *path);
 
 void print_graph(struct graph *graph);
+void print_type(struct node_type *t, int backup);
 void print_longest_path(struct graph *graph);
 
 #endif

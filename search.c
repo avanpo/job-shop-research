@@ -1,6 +1,7 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <time.h>
 
 #include "graph.h"
 #include "schedule.h"
@@ -12,9 +13,10 @@ static void replace_best_schedule(struct sa_state *sa);
 static int handle_restart(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
-static void print_sa_search_end(struct sa_state *sa);
+static void print_sa_search_end(struct sa_state *sa, int restarts);
 static void print_sa_epoch_stats(struct sa_state *sa);
 static void validate_best_schedule(struct sa_state *sa);
+static void print_elapsed_time(int start_time);
 static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
@@ -32,6 +34,8 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	init_graph(graph);
 	sa->graph = graph;
 
+	sa->restarts_since_best = 0;
+
 	sa->best = copy_schedule(graph->schedule);
 
 	return sa;
@@ -48,7 +52,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 {
 	print_sa_search_start(sa);
 
-	struct graph *g = sa->graph;
+	sa->start_time = time(NULL);
 
 	int i, j;
 	int done = 0;
@@ -56,9 +60,10 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		sa->temp = sa->initial_temp;
 		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
 			for (i = 0; i < sa->epoch_length; ++i) {
-				sa->successes += perform_swap(g, sa->temp);
+				sa->successes += perform_swap(sa->graph, sa->temp);
 				if (sa->graph->schedule->makespan < sa->best->makespan) {
 					replace_best_schedule(sa);
+					sa->restarts_since_best = 0;
 				}
 			}
 			done = handle_epoch(sa);
@@ -66,7 +71,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		done = handle_restart(sa);
 	}
 
-	print_sa_search_end(sa);
+	print_sa_search_end(sa, j - 1);
 	validate_best_schedule(sa);
 
 	if (sa->best->makespan < 100) {
@@ -82,16 +87,18 @@ static void replace_best_schedule(struct sa_state *sa)
 
 static int handle_restart(struct sa_state *sa)
 {
-	int done = 0;
-
-	if (sa->best->makespan == sa->graph->inst->max_job_makespan ||
-			sa->graph->schedule->makespan == sa->prev_makespan) {
-		++done;
+	if (sa->best->makespan == sa->graph->inst->max_job_makespan) {
+		return 1;
 	}
 
-	sa->prev_makespan = sa->graph->schedule->makespan;
+	if (sa->graph->schedule->makespan >= sa->best->makespan) {
+		++sa->restarts_since_best;
+		if (sa->restarts_since_best > 5) {
+			return 1;
+		}
+	}
 
-	return done;
+	return 0;
 }
 
 static int handle_epoch(struct sa_state *sa)
@@ -114,10 +121,15 @@ static void print_sa_search_start(struct sa_state *sa)
 	printf("\nStarting simulated annealing.\n");
 }
 
-static void print_sa_search_end(struct sa_state *sa)
+static void print_sa_search_end(struct sa_state *sa, int restarts)
 {
 	printf("\n");
+	printf("Printing search statistics\n");
+	printf("  Restarts: %d\n", restarts);
+	print_elapsed_time(sa->start_time);
+	printf("\n");
 	print_inst_info(sa->graph->inst);
+	printf("\n");
 	printf("Best solution found: \033[1m%d\033[0m\n", sa->best->makespan);
 	printf("\n");
 }
@@ -135,11 +147,26 @@ static void validate_best_schedule(struct sa_state *sa)
 	int valid = validate_schedule(sa->best, 1);
 
 	if (valid) {
-		printf("  Solution valid.\n");
+		printf("  Solution \033[1mvalid\033[0m\n");
 	} else {
-		printf("  Solution \033[1minvalid\033[0m.\n");
+		printf("  Solution \033[1minvalid\033[0m\n");
 	}
 	printf("\n");
+}
+
+static void print_elapsed_time(int start_time)
+{
+	int hour, min, sec;
+	int t = time(NULL) - start_time;
+
+	hour = t / 3600;
+	min = (t % 3600) / 60;
+	sec = (t % 3600) % 60;
+
+	printf("  Elapsed time: ");
+	if (hour) printf("%d hour%s, ", hour, hour == 1 ? "" : "s");
+	if (hour || min) printf("%d min, ", min);
+	printf("%d second%s\n", sec, sec == 1 ? "" : "s");
 }
 
 /* takes serialized graph, selects random operation on the

@@ -8,11 +8,14 @@ struct sa_state {
 	double initial_temp;
 	double alpha;
 
+	int start_time;
 	struct graph *graph;
+
 	int k;
 	double temp;
 	int successes;
-	int prev_makespan;
+
+	int restarts_since_best;
 
 	struct schedule *best;
 };

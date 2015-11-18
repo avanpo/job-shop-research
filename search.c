@@ -4,8 +4,9 @@
 
 #include "graph.h"
 #include "schedule.h"
-
 #include "search.h"
+
+//static int verbose = 0;
 
 static void replace_best_schedule(struct sa_state *sa);
 static int handle_restart(struct sa_state *sa);
@@ -13,6 +14,7 @@ static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
 static void print_sa_search_end(struct sa_state *sa);
 static void print_sa_epoch_stats(struct sa_state *sa);
+static void validate_best_schedule(struct sa_state *sa);
 static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
@@ -23,8 +25,8 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
 	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 10;
-	sa->initial_temp = 15;
-	sa->alpha = 0.95;
+	sa->initial_temp = 25;
+	sa->alpha = 0.93;
 	
 	struct graph *graph = construct_graph(inst);
 	init_graph(graph);
@@ -55,7 +57,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
 			for (i = 0; i < sa->epoch_length; ++i) {
 				sa->successes += perform_swap(g, sa->temp);
-				if (0) {//sa->k > 0 && sa->graph->schedule->makespan < sa->best->makespan) {
+				if (sa->graph->schedule->makespan < sa->best->makespan) {
 					replace_best_schedule(sa);
 				}
 			}
@@ -63,7 +65,13 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		}
 		done = handle_restart(sa);
 	}
+
 	print_sa_search_end(sa);
+	validate_best_schedule(sa);
+
+	if (sa->best->makespan < 100) {
+		print_schedule(sa->best, 0, 0);
+	}
 }
 
 static void replace_best_schedule(struct sa_state *sa)
@@ -76,7 +84,8 @@ static int handle_restart(struct sa_state *sa)
 {
 	int done = 0;
 
-	if (sa->graph->schedule->makespan == sa->prev_makespan) {
+	if (sa->best->makespan == sa->graph->inst->max_job_makespan ||
+			sa->graph->schedule->makespan == sa->prev_makespan) {
 		++done;
 	}
 
@@ -102,7 +111,7 @@ static void print_sa_search_start(struct sa_state *sa)
 	print_inst_info(sa->graph->inst);
 	printf("Chosen search parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
 	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
-	printf("Starting simulated annealing.\n");
+	printf("\nStarting simulated annealing.\n");
 }
 
 static void print_sa_search_end(struct sa_state *sa)
@@ -118,6 +127,19 @@ static void print_sa_epoch_stats(struct sa_state *sa)
 	printf("Epoch: %d (T = %.1f)\n", sa->k, sa->temp);
 	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
 	printf("  Success rate: %.1f%% (out of %d swaps)\n", 100 * (double)sa->successes / (double)sa->epoch_length, sa->epoch_length);
+}
+
+static void validate_best_schedule(struct sa_state *sa)
+{
+	printf("Validating best solution\n");
+	int valid = validate_schedule(sa->best, 1);
+
+	if (valid) {
+		printf("  Solution valid.\n");
+	} else {
+		printf("  Solution \033[1minvalid\033[0m.\n");
+	}
+	printf("\n");
 }
 
 /* takes serialized graph, selects random operation on the
@@ -166,8 +188,9 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 
 	double diff = (double)(old_makespan - new_makespan);
 	int p = (int)floor(100 * exp(diff / temp));
+	int r = rand() % 100;
 
-	return (rand() % 100) < p;
+	return r < p;
 }
 
 /* performs randomized swap between consecutive operations
@@ -183,13 +206,11 @@ static int perform_swap(struct graph *graph, double temp)
 	}
 	struct node *n1 = n2->prev_in_path;
 
-	//if (n1->id == 1225 && n2->id == 1298) print_longest_path(graph); //
-	//if (n1->id == 1225 && n2->id == 1298) print_graph(graph); //
 	swap_operations(n1, n2);
-	int not_serialized = serialize_graph(graph);
+	int serialized = serialize_graph(graph);
 
 	int new_makespan = graph->schedule->makespan;
-	if (!not_serialized && is_accepted(temp, old_makespan, new_makespan)) {
+	if (serialized && is_accepted(temp, old_makespan, new_makespan)) {
 		return 1;
 	} else {
 		reverse_swap(n1->type);

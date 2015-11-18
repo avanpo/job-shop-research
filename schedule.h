@@ -22,7 +22,10 @@ struct machine {
 struct schedule *construct_schedule(struct instance *inst);
 struct schedule *copy_schedule(struct schedule *sch);
 void destroy_schedule(struct schedule *sch);
+int validate_schedule(struct schedule *sch, int verbose);
 
+/* Set len to 0 to print the entire schedule.
+ */
 void print_schedule(struct schedule *sch, int start, int len);
 
 #endif

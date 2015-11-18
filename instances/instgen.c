@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 	int width = 0;
 	if (argc != 4 || sscanf(argv[2], "%d", &size) != 1 || sscanf(argv[3], "%d", &width) != 1 ||
 			size < 1 || size > 5 || width < 1 || width > 3) {
-		fprintf(stderr, "Please provide correct arguments:\n  ./instgen output-file-name size width\nWhere size is an integer in the range [1,5] and width is an integer in the range [1,3].\n");
+		fprintf(stderr, "Please provide correct arguments:\n  ./instgen OUTPUT_FILE_NAME SIZE WIDTH\nWhere SIZE is an integer in the range [1,5] and WIDTH is an integer in the range [1,3].\n");
 		exit(EXIT_FAILURE);
 	}
 

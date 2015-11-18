@@ -34,7 +34,7 @@ For some instances (those with sufficient machines relative to jobs), the lower 
 For instances with machine scarcity, the time shown is the time it took until there were 5 restarts that did not result in a better makespan. The assumption made is that the makespan is reasonably close to optimal at that point. The makespan does tend to converge quite fast, so more than 80% of the time is spent eeking out an extra 10% on the makespan.
 
 total ops | jobs | types | total machines | time     | optimal
-----------+------+-------+----------------+----------+--------
+----------|------|-------|----------------|----------|--------
       368 |   32 |     6 |             45 |     0:00 |     YES
       344 |   32 |     2 |              5 |     0:02 |
      1445 |   64 |    12 |            160 |     0:09 |     YES

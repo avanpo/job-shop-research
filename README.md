@@ -5,11 +5,11 @@ A local search approach for solving a variant of the job shop problem, where the
 ## Problem Definition
 
 We are given:
-* t machine types T_1, ... , T_t
-  * machine type x has m_x machines
-* n jobs J_1, ... , J_n
-  * job y has l operations O_1, ... , O_l
-    * operation z has processing time p_z, an idle time i_z, a machine type it must be executed on, and the job that z belongs to
+* t machine types T\_1, ... , T\_t
+  * machine type x has m\_x machines
+* n jobs J\_1, ... , J\_n
+  * job y has l operations O\_1, ... , O\_l
+    * operation z has processing time p\_z, an idle time i\_z, a machine type it must be executed on, and the job that z belongs to
 
 The order of operations in each job is given. After a given operation's processing time, the machine it was being executed on is immediately available. However, the next operation in the job can only be started after the idle time has passed.
 
@@ -31,7 +31,7 @@ There is a makefile provided. On a unix machine, simply type `make` to build.
 
 ## Performance
 
-For some instances (those with sufficient machines relative to jobs), the lower bound given by the maximum job makespan is equal to the makespan of the optimal solution. This gives us certainty that we have found the optimal solution, whereas this is impossible to determine otherwise. The solutions with this property are marked as such.
+For some instances (those with sufficient machines relative to jobs), the lower bound given by the maximum job makespan is equal to the makespan of the optimal solution. This gives us certainty that we have found an optimal solution, whereas this is impossible to determine otherwise. Note that optimal solutions may be very abundant in this case, so the time required to find one may not be realistic for solutions without this property.
 
 For instances with machine scarcity, the time shown is the time it took until there were 5 restarts that did not result in a better makespan. The assumption made is that the makespan is reasonably close to optimal at that point. The makespan does tend to converge quite fast, so more than 80% of the time is spent eeking out an extra 10% on the makespan.
 

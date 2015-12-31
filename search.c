@@ -21,7 +21,7 @@ static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
-struct sa_state *construct_sa_search(struct instance *inst)
+struct sa_state *construct_sa_search(struct instance *inst, int blocking)
 {
 	srand(1);
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
@@ -30,7 +30,7 @@ struct sa_state *construct_sa_search(struct instance *inst)
 	sa->initial_temp = 25;
 	sa->alpha = 0.93;
 	
-	struct graph *graph = construct_graph(inst);
+	struct graph *graph = construct_graph(inst, blocking);
 	init_graph(graph);
 	sa->graph = graph;
 

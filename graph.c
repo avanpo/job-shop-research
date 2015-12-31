@@ -11,7 +11,7 @@ static int serialize_node(struct graph *graph, struct node *node);
 static void deserialize_schedule_node(struct schedule *sch, struct node *node);
 static void deserialize_graph(struct graph *graph);
 
-struct graph *construct_graph(struct instance *inst)
+struct graph *construct_graph(struct instance *inst, int blocking)
 {
 	struct graph *g = calloc(1, sizeof(struct graph));
 	struct node_type *t = calloc(inst->num_types, sizeof(struct node_type));
@@ -20,6 +20,8 @@ struct graph *construct_graph(struct instance *inst)
 	graph = g;
 
 	g->inst = inst;
+	g->blocking = blocking;
+
 	g->num_types = inst->num_types;
 	g->types = t;
 	g->num_nodes = inst->num_ops;

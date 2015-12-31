@@ -8,22 +8,43 @@
 
 int main(int argc, char **argv)
 {
-	char *fname = "instances/17.txt";
+	char fname[256] = {0};
+	int fset = 0;
+	int error = 0;
 	int restarts = 0;
-	if (argc < 2 || strncmp(argv[1], "help", 4) == 0) {
-		printf("sol - run local search\n");
-		printf("\033[1m./sol\033[0m INSTANCE_FILE [RESTARTS]\n");
+	int blocking = 0;
+
+	int i;
+	for (i = 1; i < argc; ++i) {
+		if (argv[i][0] != '-') ++error;
+
+		if (argv[i][1] == 'f') {
+			if (argv[i + 1][0] == '-') ++error;
+
+			strncpy(fname, argv[++i], 255);
+			++fset;
+		} else if (argv[i][1] == 'r') {
+			if (argv[i + 1][0] == '-') ++error;
+
+			sscanf(argv[++i], "%d", &restarts);
+		} else if (argv[i][1] == 'b') {
+			++blocking;
+		} else {
+			++error;
+		}
+	}
+
+	if (error || !fset) {
+		printf("Sol - run local search\n");
+		printf("\033[1m./sol\033[0m [OPTIONS]... -f INSTANCE_FILE\n\n");
+		printf("Options\n");
+		printf("  -r RESTARTS   Set the number of restarts\n");
+		printf("  -b            Set whether jobs are blocking or not\n");
 		return 0;
-	}
-	if (argc >= 2) {
-		fname = argv[1];
-	}
-	if (argc >= 3) {
-		sscanf(argv[2], "%d", &restarts);
 	}
 
 	struct instance *inst = read_inst(fname);
-	struct sa_state *sa = construct_sa_search(inst);
+	struct sa_state *sa = construct_sa_search(inst, blocking);
 
 	start_sa_search(sa, restarts);
 

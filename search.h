@@ -20,7 +20,7 @@ struct sa_state {
 	struct schedule *best;
 };
 
-struct sa_state *construct_sa_search(struct instance *inst);
+struct sa_state *construct_sa_search(struct instance *inst, int blocking);
 void destroy_sa_search(struct sa_state *sa);
 
 void start_sa_search(struct sa_state *sa, int restarts);

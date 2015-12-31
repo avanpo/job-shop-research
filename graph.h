@@ -6,6 +6,8 @@
 
 struct graph {
 	struct instance *inst;
+	int blocking;
+
 	int num_types;
 	struct node_type *types;
 	int num_nodes;
@@ -38,7 +40,7 @@ struct node {
 	int machine;
 };
 
-struct graph *construct_graph(struct instance *inst);
+struct graph *construct_graph(struct instance *inst, int blocking);
 void destroy_graph(struct graph *graph);
 
 void init_graph(struct graph *graph);

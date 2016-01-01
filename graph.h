@@ -20,13 +20,16 @@ struct graph {
 struct node_type {
 	int id;
 	int num_machines;
-	int prev_start_time;
-	int prev_start_op;
-	int *end_times;
-	int *end_ops;
 	int num_ops;
 	int *ops_order;
 	int *ops_order_backup;
+
+	// for serialization
+	int prev_start_time;
+	int prev_start_op;
+	int *blocked;
+	int *end_times;
+	int *end_ops;
 };
 
 struct node {
@@ -34,6 +37,7 @@ struct node {
 	struct operation *op;
 	struct node_type *type;
 	struct node *prev;
+	struct node *next;
 
 	struct node *prev_in_path;
 	int start_time;

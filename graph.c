@@ -1,5 +1,7 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "instance.h"
 #include "graph.h"
@@ -8,6 +10,7 @@
 static struct graph *graph;
 
 static int serialize_node(struct graph *graph, struct node *node);
+static int is_serializable(struct node *node);
 static void deserialize_schedule_node(struct schedule *sch, struct node *node);
 static void deserialize_graph(struct graph *graph);
 
@@ -35,11 +38,13 @@ struct graph *construct_graph(struct instance *inst, int blocking)
 	for (i = 0; i < inst->num_types; ++i, ++t) {
 		t->id = i;
 		t->num_machines = inst->types[i].num_machines;
-		t->end_times = calloc(inst->types[i].num_machines, sizeof(int));
-		t->end_ops = calloc(inst->types[i].num_machines, sizeof(int));
 		t->num_ops = inst->types[i].num_ops;
 		t->ops_order = calloc(inst->types[i].num_ops, sizeof(int));
 		t->ops_order_backup = backup;
+
+		t->blocked = calloc(inst->types[i].num_machines, sizeof(int));
+		t->end_times = calloc(inst->types[i].num_machines, sizeof(int));
+		t->end_ops = calloc(inst->types[i].num_machines, sizeof(int));
 	}
 
 	for (i = 0; i < inst->num_ops; ++i, ++n) {
@@ -51,6 +56,11 @@ struct graph *construct_graph(struct instance *inst, int blocking)
 		} else {
 			n->prev = n - 1;
 		}
+		if (n->op - n->op->job->ops == n->op->job->num_ops - 1) {
+			n->next = NULL;
+		} else {
+			n->next = n + 1;
+		}
 		n->prev_in_path = NULL;
 	}
 
@@ -61,6 +71,7 @@ void destroy_graph(struct graph *graph)
 {
 	int i;
 	for (i = 0; i < graph->num_types; ++i) {
+		free(graph->types[i].blocked);
 		free(graph->types[i].end_times);
 		free(graph->types[i].end_ops);
 		free(graph->types[i].ops_order);
@@ -107,7 +118,7 @@ int serialize_graph(struct graph *graph)
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
-		if (n->prev == NULL || serialized[n->prev->id]) {
+		if ((n->prev == NULL || serialized[n->prev->id]) && is_serializable(n)) {
 			l = serialize_node(graph, n);
 			serialized[n->id]++;
 
@@ -287,13 +298,13 @@ static int serialize_node(struct graph *graph, struct node *node)
 
 	// calculate time at which at least 1 machine is
 	// available
-	int machine = 0;
-	int machine_release = node->type->end_times[machine];
-	int t;
-	for (t = 0; t < node->type->num_machines; ++t) {
-		if (node->type->end_times[t] < machine_release) {
-			machine_release = node->type->end_times[t];
-			machine = t;
+	int machine = -1;
+	int machine_release = INT_MAX;
+	int m;
+	for (m = 0; m < node->type->num_machines; ++m) {
+		if (!node->type->blocked[m] && node->type->end_times[m] < machine_release) {
+			machine_release = node->type->end_times[m];
+			machine = m;
 		}
 	}
 
@@ -303,6 +314,7 @@ static int serialize_node(struct graph *graph, struct node *node)
 		machine_release = node->type->prev_start_time;
 	}
 
+	// calculate operation start time and previous in path
 	int start_time;
 	if (job_release >= machine_release) {
 		start_time = job_release;
@@ -313,6 +325,17 @@ static int serialize_node(struct graph *graph, struct node *node)
 			node->prev_in_path = graph->nodes + node->type->prev_start_op;
 		} else {
 			node->prev_in_path = graph->nodes + node->type->end_ops[machine];
+		}
+	}
+
+	// blocking resolution
+	if (graph->blocking) {
+		if (node->prev) {
+			node->prev->type->end_times[node->prev->machine] = start_time;
+			node->prev->type->blocked[node->prev->machine] = 0;
+		}
+		if (node->next) {
+			node->type->blocked[machine] = 1;
 		}
 	}
 
@@ -330,6 +353,17 @@ static int serialize_node(struct graph *graph, struct node *node)
 	return finish_time;
 }
 
+static int is_serializable(struct node *node)
+{
+	int m;
+	for (m = 0; m < node->type->num_machines; ++m) {
+		if (!node->type->blocked[m]) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static void deserialize_schedule_node(struct schedule *sch, struct node *node)
 {
 	int i;
@@ -340,13 +374,14 @@ static void deserialize_schedule_node(struct schedule *sch, struct node *node)
 
 static void deserialize_graph(struct graph *graph)
 {
-	int i, j;
+	int i;
 	for (i = 0; i < graph->num_types; ++i) {
 		graph->types[i].prev_start_time = 0;
 		graph->types[i].prev_start_op = 0;
-		for (j = 0; j < graph->types[i].num_machines; ++j) {
-			graph->types[i].end_times[j] = 0;
-			graph->types[i].end_ops[j] = 0;
-		}
+
+		int blob_size = graph->types[i].num_machines * sizeof(int);
+		memset(graph->types[i].blocked, 0, blob_size);
+		memset(graph->types[i].end_times, 0, blob_size);
+		memset(graph->types[i].end_ops, 0, blob_size);
 	}
 }

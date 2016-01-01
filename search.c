@@ -116,6 +116,8 @@ static void print_sa_search_start(struct sa_state *sa)
 {
 	printf("\n");
 	print_inst_info(sa->graph->inst);
+	printf("\n");
+	printf("Problem definitions: Blocking = %s\n", sa->graph->blocking ? "yes" : "no");
 	printf("Chosen search parameters: L = %d, T_0 = %.0f, alpha = %.2f\n", sa->epoch_length, sa->initial_temp, sa->alpha);
 	printf("  Makespan: \033[1m%d\033[0m (initial ordering)\n", sa->graph->schedule->makespan);
 	printf("\nStarting simulated annealing.\n");

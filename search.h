@@ -15,12 +15,15 @@ struct sa_state {
 	double temp;
 	int successes;
 
+	int verbose;
+	int draw;
+
 	int restarts_since_best;
 
 	struct schedule *best;
 };
 
-struct sa_state *construct_sa_search(struct instance *inst, int blocking);
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking);
 void destroy_sa_search(struct sa_state *sa);
 
 void start_sa_search(struct sa_state *sa, int restarts);

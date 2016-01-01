@@ -302,7 +302,7 @@ static int serialize_node(struct graph *graph, struct node *node)
 	int machine_release = INT_MAX;
 	int m;
 	for (m = 0; m < node->type->num_machines; ++m) {
-		if (!node->type->blocked[m] && node->type->end_times[m] < machine_release) {
+		if ((!node->type->blocked[m] ||	(node->prev && node->type->end_ops[m] == node->prev->id)) && node->type->end_times[m] < machine_release) {
 			machine_release = node->type->end_times[m];
 			machine = m;
 		}
@@ -357,7 +357,7 @@ static int is_serializable(struct node *node)
 {
 	int m;
 	for (m = 0; m < node->type->num_machines; ++m) {
-		if (!node->type->blocked[m]) {
+		if (!node->type->blocked[m] || (node->prev && node->type->end_ops[m] == node->prev->id)) {
 			return 1;
 		}
 	}

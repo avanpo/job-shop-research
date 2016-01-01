@@ -104,21 +104,22 @@ int max_job_makespan(struct instance *inst)
 
 void print_inst(struct instance *inst)
 {
+	printf("Printing instance\n");
 	int t, j, o, to;
-	printf("types: %d\n", inst->num_types);
+	printf("Types: %d\n", inst->num_types);
 	for (t = 0; t < inst->num_types; ++t) {
-		printf("  type %d: %d (", t, inst->types[t].num_machines);
+		printf("| type %2d: %d (", t, inst->types[t].num_machines);
 		for (to = 0; to < inst->num_ops; ++to) {
 			printf("%d ", inst->types[t].ops[to]);
 		}
 		printf("total: %d)\n", inst->types[t].num_ops);
 	}
-	printf("jobs: %d (ops: %d)\n", inst->num_jobs, inst->num_ops);
+	printf("Jobs: %d (Ops: %d)\n", inst->num_jobs, inst->num_ops);
 	for (j = 0; j < inst->num_jobs; ++j) {
-		printf("  job %d: %d\n", j, inst->jobs[j].num_ops);
+		printf("| job %2d: %d\n", j, inst->jobs[j].num_ops);
 		for (o = 0; o < inst->jobs[j].num_ops; ++o) {
 			struct operation *op = inst->jobs[j].ops + o;
-			printf("    op %d: order %d, type %d, proc_time %d, idle_time %d\n",
+			printf("|   op %2d: order %2d, type %2d, proc_time %2d, idle_time %2d\n",
 				op->id, op->order, op->type, op->proc_time, op->idle_time);
 		}
 	}

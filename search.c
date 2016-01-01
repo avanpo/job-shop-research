@@ -21,7 +21,7 @@ static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
-struct sa_state *construct_sa_search(struct instance *inst, int blocking)
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking)
 {
 	srand(1);
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
@@ -33,6 +33,9 @@ struct sa_state *construct_sa_search(struct instance *inst, int blocking)
 	struct graph *graph = construct_graph(inst, blocking);
 	init_graph(graph);
 	sa->graph = graph;
+
+	sa->verbose = verbose;
+	sa->draw = draw;
 
 	sa->restarts_since_best = 0;
 
@@ -74,8 +77,10 @@ void start_sa_search(struct sa_state *sa, int restarts)
 	print_sa_search_end(sa, j - 1);
 	validate_best_schedule(sa);
 
-	if (sa->best->makespan < 100) {
-		print_schedule(sa->best, 0, 0);
+	if (sa->draw) {
+		print_inst(sa->graph->inst);
+		printf("\n");
+		print_schedule(sa->best, 0, 90);
 	}
 }
 
@@ -103,7 +108,9 @@ static int handle_restart(struct sa_state *sa)
 
 static int handle_epoch(struct sa_state *sa)
 {
-	print_sa_epoch_stats(sa);
+	if (sa->verbose) {
+		print_sa_epoch_stats(sa);
+	}
 
 	sa->temp *= sa->alpha;
 
@@ -130,8 +137,10 @@ static void print_sa_search_end(struct sa_state *sa, int restarts)
 	printf("  Restarts: %d\n", restarts);
 	print_elapsed_time(sa->start_time);
 	printf("\n");
-	print_inst_info(sa->graph->inst);
-	printf("\n");
+	if (sa->verbose) {
+		print_inst_info(sa->graph->inst);
+		printf("\n");
+	}
 	printf("Best solution found: \033[1m%d\033[0m\n", sa->best->makespan);
 	printf("\n");
 }
@@ -146,7 +155,7 @@ static void print_sa_epoch_stats(struct sa_state *sa)
 static void validate_best_schedule(struct sa_state *sa)
 {
 	printf("Validating best solution\n");
-	int valid = validate_schedule(sa->best, 1);
+	int valid = validate_schedule(sa->best, sa->verbose);
 
 	if (valid) {
 		printf("  Solution \033[1mvalid\033[0m\n");

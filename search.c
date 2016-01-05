@@ -21,7 +21,7 @@ static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
-struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking)
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int write)
 {
 	srand(1);
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
@@ -36,6 +36,7 @@ struct sa_state *construct_sa_search(struct instance *inst, int verbose, int dra
 
 	sa->verbose = verbose;
 	sa->draw = draw;
+	sa->write = write;
 
 	sa->restarts_since_best = 0;
 
@@ -80,7 +81,10 @@ void start_sa_search(struct sa_state *sa, int restarts)
 	if (sa->draw) {
 		print_inst(sa->graph->inst);
 		printf("\n");
-		print_schedule(sa->best, 0, 90);
+		draw_schedule(sa->best, 0, 90);
+	}
+	if (sa->write) {
+		write_schedule(sa->best);
 	}
 }
 

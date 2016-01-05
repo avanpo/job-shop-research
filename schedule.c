@@ -148,7 +148,82 @@ int validate_schedule(struct schedule *sch, int verbose)
 	return invalid == 0;
 }
 
-void print_schedule(struct schedule *sch, int start, int len)
+void print_schedule(struct schedule *sch)
+{
+	int i, j, k, l;
+	printf("type mach start finish job idle\n");
+	int *op_order = malloc(sch->inst->num_ops * sizeof(int));
+	for (i = 0; i < sch->num_types; ++i) {
+		for (j = 0; j < sch->types[i].num_machines; ++j) {
+			l = 0;
+			for (k = 0; k < sch->inst->num_ops; ++k) {
+				op_order[k] = -1;
+			}
+			for (k = 0; k < sch->inst->num_ops; ++k) {
+				if (sch->types[i].machines[j].op_start_times[k] != -1) {
+					op_order[l] = k;
+					++l;
+				}
+			}
+			for (k = 1; k < l; ++k) { // insertion sort
+				int t = op_order[k];
+				size_t m = k;
+				while (m > 0 && sch->types[i].machines[j].op_start_times[t] < sch->types[i].machines[j].op_start_times[op_order[m-1]]) {
+					op_order[m] = op_order[m-1];
+					--m;
+				}
+				op_order[m] = t;
+			}
+			for (--l; l >= 0; --l) {
+				int s = sch->types[i].machines[j].op_start_times[op_order[l]];
+				struct operation *o = sch->inst->ops + op_order[l];
+				printf("%4d %4d %5d %6d %3d %4d\n", i+1, j+1, s, s + o->proc_time, o->job->id + 1, o->idle_time);
+			}
+		}
+	}
+}
+
+void write_schedule(struct schedule *sch)
+{
+	FILE *fp = fopen("sols/out.txt", "w");
+	if (fp == NULL) {
+		fprintf(stderr, "Error opening file.\n");
+		exit(EXIT_FAILURE);
+	}
+	int i, j, k, l;
+	int *op_order = malloc(sch->inst->num_ops * sizeof(int));
+	for (i = 0; i < sch->num_types; ++i) {
+		for (j = 0; j < sch->types[i].num_machines; ++j) {
+			l = 0;
+			for (k = 0; k < sch->inst->num_ops; ++k) {
+				op_order[k] = -1;
+			}
+			for (k = 0; k < sch->inst->num_ops; ++k) {
+				if (sch->types[i].machines[j].op_start_times[k] != -1) {
+					op_order[l] = k;
+					++l;
+				}
+			}
+			for (k = 1; k < l; ++k) { // insertion sort
+				int t = op_order[k];
+				size_t m = k;
+				while (m > 0 && sch->types[i].machines[j].op_start_times[t] < sch->types[i].machines[j].op_start_times[op_order[m-1]]) {
+					op_order[m] = op_order[m-1];
+					--m;
+				}
+				op_order[m] = t;
+			}
+			for (k = 0; k < l; ++k) {
+				int s = sch->types[i].machines[j].op_start_times[op_order[k]];
+				struct operation *o = sch->inst->ops + op_order[k];
+				fprintf(fp, "%d:%d \t%d \t%d \t%d\n", i+1, j+1, s, s + o->proc_time, o->job->id + 1);
+			}
+		}
+	}
+	fclose(fp);
+}
+
+void draw_schedule(struct schedule *sch, int start, int len)
 {
 	int end = start + len;
 	if (len == 0 || end > sch->makespan) {

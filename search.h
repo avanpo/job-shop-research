@@ -17,13 +17,14 @@ struct sa_state {
 
 	int verbose;
 	int draw;
+	int write;
 
 	int restarts_since_best;
 
 	struct schedule *best;
 };
 
-struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking);
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int write);
 void destroy_sa_search(struct sa_state *sa);
 
 void start_sa_search(struct sa_state *sa, int restarts);

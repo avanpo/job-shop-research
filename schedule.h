@@ -16,7 +16,7 @@ struct machine_type {
 };
 
 struct machine {
-	int *op_start_times;
+	int *op_start_times; // -1 if not scheduled
 };
 
 struct schedule *construct_schedule(struct instance *inst);
@@ -24,8 +24,10 @@ struct schedule *copy_schedule(struct schedule *sch);
 void destroy_schedule(struct schedule *sch);
 int validate_schedule(struct schedule *sch, int verbose);
 
+void print_schedule(struct schedule *sch);
+void write_schedule(struct schedule *sch);
 /* Set len to 0 to print the entire schedule.
  */
-void print_schedule(struct schedule *sch, int start, int len);
+void draw_schedule(struct schedule *sch, int start, int len);
 
 #endif

@@ -15,6 +15,7 @@ int main(int argc, char **argv)
 	int verbose = 0;
 	int draw = 0;
 	int blocking = 0;
+	int write = 0;
 
 	int i;
 	for (i = 1; i < argc; ++i) {
@@ -35,6 +36,8 @@ int main(int argc, char **argv)
 			++verbose;
 		} else if (argv[i][1] == 'd') {
 			++draw;
+		} else if (argv[i][1] == 'w') {
+			++write;
 		} else {
 			++error;
 		}
@@ -49,11 +52,12 @@ int main(int argc, char **argv)
 		printf("  -b            Set whether jobs are blocking or not\n");
 		printf("  -v            Set the verbose option\n");
 		printf("  -d            Draw schedule and instance on search finish\n");
+		printf("  -w            Write the solution to file.\n");
 		return 0;
 	}
 
 	struct instance *inst = read_inst(fname);
-	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking);
+	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking, write);
 
 	start_sa_search(sa, restarts);
 

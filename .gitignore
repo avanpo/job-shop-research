@@ -1,3 +1,6 @@
 sol
 instances/instgen
 instances/*.txt
+sols/*.txt
+sols/*.gpl
+sols/*.png

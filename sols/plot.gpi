@@ -1,0 +1,6 @@
+#!/usr/bin/gnuplot
+
+set terminal pngcairo size 1024,768 enhanced font "Monospace,10"
+set output "out.png"
+load "out.gpl"
+unset output

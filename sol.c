@@ -32,8 +32,10 @@ int main(int argc, char **argv)
 			sscanf(argv[++i], "%d", &restarts);
 		} else if (argv[i][1] == 'b') {
 			++blocking;
-		} else if (argv[i][1] == 'v') {
+		} else if (argv[i][1] == 'v' && argv[i][2] == '1') {
 			++verbose;
+		} else if (argv[i][1] == 'v' && argv[i][2] == '2') {
+			verbose = 2;
 		} else if (argv[i][1] == 'd') {
 			++draw;
 		} else if (argv[i][1] == 'w') {
@@ -50,7 +52,8 @@ int main(int argc, char **argv)
 		printf("Options:\n");
 		printf("  -r RESTARTS   Set the number of restarts\n");
 		printf("  -b            Set whether jobs are blocking or not\n");
-		printf("  -v            Set the verbose option\n");
+		printf("  -v1           Set the verbose option\n");
+		printf("  -v2           Set the very verbose option\n");
 		printf("  -d            Draw schedule and instance on search finish\n");
 		printf("  -w            Write the solution to file.\n");
 		return 0;

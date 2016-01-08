@@ -13,7 +13,8 @@ static void replace_best_schedule(struct sa_state *sa);
 static int handle_restart(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
-static void print_sa_search_end(struct sa_state *sa, int restarts);
+static void print_sa_search_end(struct sa_state *sa);
+static void print_sa_cycle_stats(struct sa_state *sa);
 static void print_sa_epoch_stats(struct sa_state *sa);
 static void validate_best_schedule(struct sa_state *sa);
 static void print_elapsed_time(int start_time);
@@ -23,7 +24,7 @@ static int is_accepted(double temp, int old_makespan, int new_makespan);
 
 struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int write)
 {
-	srand(1);
+	srand(time(NULL));
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
 	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 10;
@@ -37,8 +38,6 @@ struct sa_state *construct_sa_search(struct instance *inst, int verbose, int dra
 	sa->verbose = verbose;
 	sa->draw = draw;
 	sa->write = write;
-
-	sa->restarts_since_best = 0;
 
 	sa->best = copy_schedule(graph->schedule);
 
@@ -58,16 +57,15 @@ void start_sa_search(struct sa_state *sa, int restarts)
 
 	sa->start_time = time(NULL);
 
-	int i, j;
+	int i;
 	int done = 0;
-	for (j = 0; j <= restarts && !done; ++j) {
+	for (sa->c = 0; sa->c <= restarts && !done; ++(sa->c)) {
 		sa->temp = sa->initial_temp;
 		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
 			for (i = 0; i < sa->epoch_length; ++i) {
 				sa->successes += perform_swap(sa->graph, sa->temp);
 				if (sa->graph->schedule->makespan < sa->best->makespan) {
 					replace_best_schedule(sa);
-					sa->restarts_since_best = 0;
 				}
 			}
 			done = handle_epoch(sa);
@@ -75,13 +73,16 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		done = handle_restart(sa);
 	}
 
-	print_sa_search_end(sa, j - 1);
+	print_sa_search_end(sa);
 	validate_best_schedule(sa);
 
 	if (sa->draw) {
 		print_inst(sa->graph->inst);
 		printf("\n");
-		draw_schedule(sa->best, 0, 90);
+		print_graph(sa->graph);
+		print_longest_path(sa->graph);
+		draw_schedule(sa->best, 0, 70);
+		draw_schedule(sa->best, 60, 130);
 	}
 	if (sa->write) {
 		write_schedule(sa->best);
@@ -96,28 +97,29 @@ static void replace_best_schedule(struct sa_state *sa)
 
 static int handle_restart(struct sa_state *sa)
 {
-	if (sa->best->makespan == sa->graph->inst->max_job_makespan) {
+	if (sa->verbose >= 1) {
+		print_sa_cycle_stats(sa);
+	}
+
+	if (sa->best->makespan == sa->graph->inst->max_job_makespan ||
+			sa->c_successes == 0) {
 		return 1;
 	}
 
-	if (sa->graph->schedule->makespan >= sa->best->makespan) {
-		++sa->restarts_since_best;
-		if (sa->restarts_since_best > 5) {
-			return 1;
-		}
-	}
+	sa->c_successes = 0;
 
 	return 0;
 }
 
 static int handle_epoch(struct sa_state *sa)
 {
-	if (sa->verbose) {
+	if (sa->verbose >= 2) {
 		print_sa_epoch_stats(sa);
 	}
 
 	sa->temp *= sa->alpha;
 
+	sa->c_successes += sa->successes;
 	sa->successes = 0;
 
 	return sa->best->makespan == sa->graph->inst->max_job_makespan;
@@ -134,11 +136,11 @@ static void print_sa_search_start(struct sa_state *sa)
 	printf("\nStarting simulated annealing.\n");
 }
 
-static void print_sa_search_end(struct sa_state *sa, int restarts)
+static void print_sa_search_end(struct sa_state *sa)
 {
 	printf("\n");
 	printf("Printing search statistics\n");
-	printf("  Restarts: %d\n", restarts);
+	printf("  Restarts: %d\n", sa->c - 1);
 	print_elapsed_time(sa->start_time);
 	printf("\n");
 	if (sa->verbose) {
@@ -154,6 +156,12 @@ static void print_sa_epoch_stats(struct sa_state *sa)
 	printf("Epoch: %d (T = %.1f)\n", sa->k, sa->temp);
 	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
 	printf("  Success rate: %.1f%% (out of %d swaps)\n", 100 * (double)sa->successes / (double)sa->epoch_length, sa->epoch_length);
+}
+
+static void print_sa_cycle_stats(struct sa_state *sa)
+{
+	printf("Cycle: %d\n", sa->c);
+	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
 }
 
 static void validate_best_schedule(struct sa_state *sa)
@@ -249,6 +257,7 @@ static int perform_swap(struct graph *graph, double temp)
 	struct node *n1 = n2->prev_in_path;
 
 	swap_operations(n1, n2);
+
 	int serialized = serialize_graph(graph);
 
 	int new_makespan = graph->schedule->makespan;

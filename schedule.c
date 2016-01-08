@@ -239,9 +239,9 @@ void draw_schedule(struct schedule *sch, int start, int len)
 	printf("| t | m |");
 	for (k = start; k < end; k += 2) {
 		if (k < end - 1) {
-			printf("%-2d  ", k);
+			printf("%-3d ", k);
 		} else {
-			printf("%-2d", k);
+			printf("%-3d", k);
 		}
 	}
 	printf("|\n+---+---+");

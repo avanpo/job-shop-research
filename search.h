@@ -11,15 +11,15 @@ struct sa_state {
 	int start_time;
 	struct graph *graph;
 
+	int c;
 	int k;
 	double temp;
+	int c_successes;
 	int successes;
 
 	int verbose;
 	int draw;
 	int write;
-
-	int restarts_since_best;
 
 	struct schedule *best;
 };

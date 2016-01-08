@@ -83,7 +83,7 @@ void start_sa_search(struct sa_state *sa, int restarts)
 		print_inst(sa->graph->inst);
 		printf("\n");
 		draw_schedule(sa->best, 0, 70);
-		if (sa->best->makespan > 70) draw_schedule(sa->best, 60, 130);
+		if (sa->best->makespan > 70) draw_schedule(sa->best, 60, 70);
 	}
 	if (sa->write) {
 		write_schedule(sa->best);

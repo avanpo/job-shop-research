@@ -14,7 +14,11 @@ struct sa_state {
 	int c;
 	int k;
 	double temp;
+
 	int c_successes;
+	int c_cycles;
+	int c_rejected;
+	int c_empty;
 	int successes;
 
 	int verbose;

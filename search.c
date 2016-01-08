@@ -10,6 +10,7 @@
 //static int verbose = 0;
 
 static void replace_best_schedule(struct sa_state *sa);
+static void update_stats(struct sa_state *sa, int result);
 static int handle_restart(struct sa_state *sa);
 static int handle_epoch(struct sa_state *sa);
 static void print_sa_search_start(struct sa_state *sa);
@@ -27,7 +28,7 @@ struct sa_state *construct_sa_search(struct instance *inst, int verbose, int dra
 	srand(time(NULL));
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
-	sa->epoch_length = (inst->num_ops / inst->num_jobs) * 10;
+	sa->epoch_length = inst->num_ops * 8;
 	sa->initial_temp = 25;
 	sa->alpha = 0.93;
 	
@@ -59,11 +60,13 @@ void start_sa_search(struct sa_state *sa, int restarts)
 
 	int i;
 	int done = 0;
+	int result;
 	for (sa->c = 0; sa->c <= restarts && !done; ++(sa->c)) {
 		sa->temp = sa->initial_temp;
 		for (sa->k = 0; sa->temp > 0.5 && !done; ++sa->k) {
 			for (i = 0; i < sa->epoch_length; ++i) {
-				sa->successes += perform_swap(sa->graph, sa->temp);
+				result = perform_swap(sa->graph, sa->temp);
+				update_stats(sa, result);
 				if (sa->graph->schedule->makespan < sa->best->makespan) {
 					replace_best_schedule(sa);
 				}
@@ -79,10 +82,8 @@ void start_sa_search(struct sa_state *sa, int restarts)
 	if (sa->draw) {
 		print_inst(sa->graph->inst);
 		printf("\n");
-		print_graph(sa->graph);
-		print_longest_path(sa->graph);
 		draw_schedule(sa->best, 0, 70);
-		draw_schedule(sa->best, 60, 130);
+		if (sa->best->makespan > 70) draw_schedule(sa->best, 60, 130);
 	}
 	if (sa->write) {
 		write_schedule(sa->best);
@@ -95,6 +96,25 @@ static void replace_best_schedule(struct sa_state *sa)
 	sa->best = copy_schedule(sa->graph->schedule);
 }
 
+static void update_stats(struct sa_state *sa, int result)
+{
+	switch(result) {
+	case 0:
+		++sa->c_successes;
+		++sa->successes;
+		break;
+	case 1:
+		++sa->c_cycles;
+		break;
+	case 2:
+		++sa->c_rejected;
+		break;
+	case 3:
+		++sa->c_empty;
+		break;
+	}
+}
+
 static int handle_restart(struct sa_state *sa)
 {
 	if (sa->verbose >= 1) {
@@ -102,11 +122,14 @@ static int handle_restart(struct sa_state *sa)
 	}
 
 	if (sa->best->makespan == sa->graph->inst->max_job_makespan ||
-			sa->c_successes == 0) {
+	   		(sa->c_successes == 0 && sa->c_rejected == 0)) {
 		return 1;
 	}
 
 	sa->c_successes = 0;
+	sa->c_cycles = 0;
+	sa->c_rejected = 0;
+	sa->c_empty = 0;
 
 	return 0;
 }
@@ -119,7 +142,6 @@ static int handle_epoch(struct sa_state *sa)
 
 	sa->temp *= sa->alpha;
 
-	sa->c_successes += sa->successes;
 	sa->successes = 0;
 
 	return sa->best->makespan == sa->graph->inst->max_job_makespan;
@@ -162,6 +184,8 @@ static void print_sa_cycle_stats(struct sa_state *sa)
 {
 	printf("Cycle: %d\n", sa->c);
 	printf("  Makespan: \033[1m%d\033[0m\n", sa->graph->schedule->makespan);
+	printf("  Success rate: %.1f%%\n", 100 * (double)sa->c_successes / ((double)sa->epoch_length * (double)sa->k));
+	printf("  Success/Infeasible/Rejected/Empty: %d/%d/%d/%d\n", sa->c_successes, sa->c_cycles, sa->c_rejected, sa->c_empty);
 }
 
 static void validate_best_schedule(struct sa_state *sa)
@@ -237,14 +261,20 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 	}
 
 	double diff = (double)(old_makespan - new_makespan);
-	int p = (int)floor(100 * exp(diff / temp));
-	int r = rand() % 100;
+	int p = (int)floor(100000 * exp(diff / temp));
+	int r = rand() % 100000;
+
+	//printf("%02d/%02d (old: %d, new: %d, diff: %f)\n", r, p, old_makespan, new_makespan, diff);
 
 	return r < p;
 }
 
 /* performs randomized swap between consecutive operations
  * on the longest path on the same machine
+ * returns: 0 on success
+ *          1 on cyclic graph
+ *          2 on sa rejected
+ *          3 on empty neighborhood
  */
 static int perform_swap(struct graph *graph, double temp)
 {
@@ -252,7 +282,7 @@ static int perform_swap(struct graph *graph, double temp)
 
 	struct node *n2 = get_swap_possibility(graph);
 	if (n2 == NULL) {
-		return 0;
+		return 3;
 	}
 	struct node *n1 = n2->prev_in_path;
 
@@ -262,10 +292,13 @@ static int perform_swap(struct graph *graph, double temp)
 
 	int new_makespan = graph->schedule->makespan;
 	if (serialized && is_accepted(temp, old_makespan, new_makespan)) {
-		return 1;
+		return 0;
 	} else {
 		reverse_swap(n1->type);
 		serialize_graph(graph);
-		return 0;
+		if (!serialized) return 1;
+		//printf("rejected: %d and %d\n", n1->id, n2->id);
+		//print_longest_path(graph);
+		return 2;
 	}
 }

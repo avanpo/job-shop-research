@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[a4paper,10pt]{article}
 \usepackage{amsmath}
 \usepackage{enumitem}
 \usepackage{tikz}
@@ -32,11 +32,7 @@ In the remainder of the first section, the FJS is formally defined. The blocking
 
 \subsection{Formal definition}
 
-The Flexible Job Shop problem is defined as follows.
-
-\subsubsection{Notation}
-
-We are given a set of $n$ jobs.
+The Flexible Job Shop problem is defined as follows. We are given a set of $n$ jobs.
 
 \[ \mathcal{J} = \{J_1, \dots, J_n\} \]
 
@@ -52,15 +48,11 @@ Each machine type $T_k$ has a given number of machines, defined as $m_k$. Furthe
 
 Machines are assumed to be continuously available from time 0, and can complete at most one operation at a time. Preemption is not allowed; the processing time $p_{i,j}$ must be uninterrupted. The delay time $w_{i,j}$ is defined as the time that must pass after operation $O_{i,j}$ is completed, before $O_{i,j + 1}$ may begin. Note that the machine $O_{i,j}$ was being processed on is immediately available.
 
-\subsubsection{Objective}
-
 We are interested in the following objective function.
 
 \[ \min \{ C_\text{max} \} \]
 
 Where $C_\text{max}$ is defined as the maximum completion time, or the time at which the last machine finished. This will be referred to as the \emph{makespan} of a schedule for the rest of this paper.
-
-\subsubsection{Definition considerations}
 
 In some other literature describing the Flexible Job Shop problem, there is no concept of a machine type. Instead, each operation is defined to be processed on some subset of the set of all machines \cite{approxfjsp}. This formulation is more general than the one used in this paper.
 
@@ -78,9 +70,9 @@ In solving the FSJ, we are tasked with two problems. The first is to assign oper
 
 \subsection{Representation}
 
-The classical Job Shop problem is often modeled as a disjunctive graph (for example, see \textbf{Figure 1}), where the directed arcs represent the precedence constraints within a job, and the undirected edges represent operations that must be processed on the same machine. By defining a direction on the edges, and making sure that these definitions result in an acyclic graph, one obtains a valid schedule for the Job Shop instance. In this case, an undirected edge represents a non-simultaneity constraint -- the two operations may be processed in any order, but not at the same time. If we wish to use the same definition for the FSJ, we are forced to assign operations to machines before directing the edges. However, that splits the problem into two parts as mentioned above, and will increase the complexity of the neighborhood. We will take another approach.
+The classical Job Shop problem is often modeled as a disjunctive graph (for example, see \textbf{Figure \ref{fig:disjunctivegraph}}), where the directed arcs represent the precedence constraints within a job, and the undirected edges represent operations that must be processed on the same machine. By defining a direction on the edges, and making sure that these definitions result in an acyclic graph, one obtains a valid schedule for the Job Shop instance. In this case, an undirected edge represents a non-simultaneity constraint -- the two operations may be processed in any order, but not at the same time. If we wish to use the same definition for the FSJ, we are forced to assign operations to machines before directing the edges. However, that splits the problem into two parts as mentioned above, and will increase the complexity of the neighborhood. We will take another approach.
 
-\begin{figure}
+\begin{figure}[h]
 \centering
 \begin{tikzpicture}
 
@@ -119,25 +111,26 @@ The classical Job Shop problem is often modeled as a disjunctive graph (for exam
 
 \end{tikzpicture}
 \caption{A disjunctive graph representing 3 jobs on 3 machines}
+\label{fig:disjunctivegraph}
 \end{figure}
 
 We decide to modify the definition of an undirected edge. Instead, it will define two operations that may be processed in any order on the same machine, or independently on two different machines of the same type. Directing these edges will define the order of processing in the case the operations are on the same machine. In the case that they aren't, it only means that the start time of the second operation is equal to or greater than the start time of the first operation. This will make the serialization of a schedule more difficult, but the advantage is that generating the neighborhood will be easier.
 
-In our representation, we can ascertain the following information from \textbf{Figure 1}. There are three jobs. Operations 1 and 8 must be processed by the same machine type. Similarly, operations 2, 4, and 6 are processed on another, and 3, 5, and 7 on the last machine type.
+In our representation, we can ascertain the following information from \textbf{Figure \ref{fig:disjunctivegraph}}. There are three jobs. Operations 1 and 8 must be processed by the same machine type. Similarly, operations 2, 4, and 6 are processed on another, and 3, 5, and 7 on the last machine type.
 
 \subsection{Serializing the schedule}
 
 Once all the edges in the disjunctive graph have been given directions, such that the graph is acyclic, it is possible to generate the schedule. The serialization function will assign operations to machines, and calculate the start time for each operation. The makespan can be determined after this process. It is important that the graph representation combined with the serialization function spans the entire set of feasible schedules. Furthermore, the serialization function should be deterministic in order to allow the local search to do its work.
 
-To do this, we place the unscheduled operations in ordered queues for each machine type $T_k$. We take the first operation that has no unscheduled job predecessor, and schedule it greedily into the first available machine, taking care to schedule it at the same start time or after that of the previously scheduled operation for that type. This conforms to the requirements we laid out earlier in the representation section.
+To do this, we place the unscheduled operations in ordered queues for each machine type $T_k$. We take the first operation that has no unscheduled job predecessor, and schedule it greedily into the first available machine, taking care to schedule it at the same start time or after that of the previously scheduled operation for that type. This ensures the ordering on the operations is preserved in the schedule, and conforms to the requirements we laid out earlier in the representation section. Scheduling operations before the starting time of a previously scheduled operation on the same machine type can lead to a schedule that is actually infeasible.
 
 If there is no operation without an unscheduled job predecessor, then there exists a cycle in the graph, and the schedule serialization fails.
 
-We could choose to apply tricks to generate a better schedule, but instead we will allow the local search to do that by modifying the order of the operations for each machine type.
+We could choose to apply several tricks to generate a better schedule, but instead we will let the local search do that for us by modifying the order of the operations for each machine type.
 
 \subsubsection{Schedule serialization example}
 
-\begin{figure}
+\begin{figure}[h]
 \centering
 \begin{tikzpicture}
 
@@ -169,16 +162,17 @@ We could choose to apply tricks to generate a better schedule, but instead we wi
 % edges
 \draw[arc] (1) to (8);
 \draw[arc] (5) to (3);
-\draw[arc] [bend left=20] (7) to (3);
+\draw[arc] [bend right=20] (7) to (3);
 \draw[arc] (7) to (5);
 \draw[arc] (2) to (6);
 \draw[arc] (6) to (4);
 
 \end{tikzpicture}
 \caption{An acyclic directed graph representing a schedule}
+\label{fig:dag}
 \end{figure}
 
-Consider the acyclic directed graph in \textbf{Figure 2}. The serialization function would set up three ordered queues.
+Consider the acyclic directed graph in \textbf{Figure \ref{fig:dag}}. The serialization function would set up three ordered queues:
 
 \[ O_1 \rightarrow O_8 \]
 \[ O_2 \rightarrow O_6 \rightarrow O_4 \]
@@ -188,16 +182,50 @@ Since operation $O_2$ has an unscheduled job predecessor, the algorithm would sc
 
 \subsection{Critical path neighborhood}
 
-A neighborhood solution is generated by calculating the longest path 
+For the classical Job Shop problem, a commonly used neighborhood is the set of all critical block swaps. The critical block swap is a reversal of an edge on the longest path of the disjunctive graph. This neighborhood is quite small, focusing on the operations that influence the length of the makespan. More importantly, the neighborhood is guaranteed to consist only of other acyclic graphs, or feasible solutions \cite{simulatedannealingjsp}.
+
+For the FJS, we can define the longest path in a similar manner. Whereas the longest path for the classical Job Shop problem was also chronologically sequential in terms of the generated schedule, this is no longer necessarily the case for the FJS. We must also consider operations on the same machine type, scheduled on different machines. For example, consider the operations $O_{1,1}$ and $O_{2,2}$ from different jobs that must be scheduled on machines of type $T$, connected by a directed edge from $O_{1,1}$ to $O_{2,2}$. Suppose $O_{1,1}$ has been scheduled at time $t_1$ on machine $M_1$ of type $T$ due to a precedence constraint. Further suppose that machine $M_2$, also of type $T$, is available from some time $t_2 < t_1$. However, the serialization function is forced to schedule $O_{2,2}$ on $M_2$ at time $t_1$ anyway. In this scenario, we would like to reverse the order of the arc between $O_{1,1}$ and $O_{2,2}$, so that $O_{2,2}$ may be scheduled earlier and therefore potentially decrease the length of the longest path.
+
+Therefore, we construct our neighborhood by considering operations $v$ and $w$ such that:
+
+\begin{itemize}
+	\item $v$ and $w$ have both been scheduled consecutively on the same machine
+	\item $v$ and $w$ have been scheduled on different machines of the same type at the same time
+\end{itemize}
+
+\subsubsection{Applying the swap}
+
+Let's consider the absolute ordering on the set of operations on a machine type, as defined by the acyclic directed graph corresponding to a feasible schedule. In the classical Job Shop case, a critical block swap identifies two consecutively scheduled nodes on a machine. These two nodes are necessarily consecutive in the absolute ordering, as well. In the FJS problem, this is no longer necessarily the case, since operations in between may have been scheduled on other machines of the same type. If one of these other operations is of the same job as either of the selected nodes, simply reversing the directed edge between the two nodes will lead to one or more cycles.
+
+Consider the following absolute ordering of a machine type. \textbf{Figure \ref{fig:swap}} shows a possible scheduling configuration for this sample, where similar colors indicate the same job.
+
+\[ \dots \rightarrow O_{1,9} \rightarrow O_{2,12} \rightarrow O_{1,10} \rightarrow O_{2,13} \rightarrow \dots \]
+
+We wish to swap the order of operations $O_{1,9}$ and $O_{2,13}$, both on the critical path. We can resolve this situation by reversing a few more arcs, to achieve the following absolute ordering.
+
+\[ \dots \rightarrow O_{2,12} \rightarrow O_{2,13} \rightarrow O_{1,9} \rightarrow O_{1,10} \rightarrow \dots \]
+
+The swap operation must preserve the job order of all operations in the graph, as above. This ensures that no cycles will be created within a machine type.
+
+\subsubsection{Infeasible solutions}
+
+The critical path neighborhood for the classical Job Shop is guaranteed to consist of only feasible schedules, a very nice result from Van Laarhoven et al \cite{simulatedannealingjsp}. Unfortunately, this is not the case for the Flexible Job Shop. Consider the schedule shown in \textbf{Figure \ref{fig:cycle}}, and the associated absolute ordering below:
 
 \section{A local search approach to the FBSJ}
 
 \begin{thebibliography}{9}
 
 \bibitem{approxfjsp}
-	Jansen, Klaus, Monaldo Mastrolilli, Roberto Solis-Oba.
+	Jansen, Klaus, Monaldo Mastrolilli, and Roberto Solis-Oba.
 	``Approximation algorithms for flexible job shop problems.''
-	\textit{LATIN 2000: Theoretical Informatics}. Springer Berlin Heidelberg, 2000. 68-77.
+	\textit{LATIN 2000: Theoretical Informatics}.
+	Springer Berlin Heidelberg, 2000. 68-77.
+
+\bibitem{simulatedannealingjsp}
+	Van Laarhoven, Peter JM, Emile HL Aarts, and Jan Karel Lenstra.
+	``Job shop scheduling by simulated annealing."
+	\textit{Operations research}.
+	40.1 (1992): 113-125.
 
 \bibitem{genbjs}
 	Heinz Gr{\"o}flin, Andreas Klinkert.

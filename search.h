@@ -21,6 +21,8 @@ struct sa_state {
 	int c_empty;
 	int successes;
 
+	int t_cycles;
+
 	int verbose;
 	int draw;
 	int write;

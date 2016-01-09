@@ -30,7 +30,7 @@ struct sa_state *construct_sa_search(struct instance *inst, int verbose, int dra
 
 	sa->epoch_length = inst->num_ops * 8;
 	sa->initial_temp = 25;
-	sa->alpha = 0.93;
+	sa->alpha = 0.95;
 	
 	struct graph *graph = construct_graph(inst, blocking);
 	init_graph(graph);
@@ -126,6 +126,8 @@ static int handle_restart(struct sa_state *sa)
 		return 1;
 	}
 
+	sa->t_cycles += sa->c_cycles;
+
 	sa->c_successes = 0;
 	sa->c_cycles = 0;
 	sa->c_rejected = 0;
@@ -163,6 +165,7 @@ static void print_sa_search_end(struct sa_state *sa)
 	printf("\n");
 	printf("Printing search statistics\n");
 	printf("  Restarts: %d\n", sa->c - 1);
+	printf("  Cycles encountered: %d\n", sa->t_cycles);
 	print_elapsed_time(sa->start_time);
 	printf("\n");
 	if (sa->verbose) {

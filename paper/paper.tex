@@ -1,15 +1,28 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage{amsmath}
 \usepackage{enumitem}
-\usepackage{tikz}
 
+\usepackage{tikz}
 \usetikzlibrary{arrows}
+
+\usepackage{pgfgantt}
+\definecolor{blue}{HTML}{74BBC9}
+\definecolor{green}{HTML}{A9D454}
+\definecolor{yellow}{HTML}{F7E967}
+\definecolor{red}{HTML}{F24440}
+\definecolor{darkblue}{HTML}{425D69}
+\definecolor{orange}{HTML}{FF9036}
+\definecolor{violet}{RGB}{216,3,240}
+
+\usepackage[backend=biber, style=numeric, sorting=none]{biblatex}
+\addbibresource{paper.bib}
+
+\title{A local search approach for flexible job shop problems}
+\author{Alex van Poppelen\smallskip\\
+\emph{Supervisor:} Dr. J.A. Hoogeveen}
 
 \begin{document}
 
-\title{A local search approach for flexible job shop problems}
-\author{Alex van Poppelen}
-\date{\today}
 \maketitle
 
 \begin{abstract}
@@ -26,9 +39,9 @@ This is my abstract.
 
 The Job Shop problem looks at the problem of scheduling multi operation jobs on a set of machines, where each operation in a job needs to be processed on a certain machine. The Job Shop problem is well known to be NP-hard in the strong sense, and notoriously difficult to solve even compred to other NP-hard problems.
 
-In this paper, the Flexible Job Shop (FJS) and the Flexible Blocking Job Shop (FBJS) problems are considered. These two problems are an extension of the Job Shop and Blocking Job Shop problems where individual machines required by each operation are replaced by a number of identical machines running in parallel. Because of the need to assign operations to machines, the FJS is even more complex than the classical Job Shop problem. It is known to be strongly NP-hard \cite{approxfjsp}.
+In this paper, the Flexible Job Shop (FJS) and the Flexible Blocking Job Shop (FBJS) problems are considered. These two problems are an extension of the Job Shop and Blocking Job Shop problems where individual machines required by each operation are replaced by a number of identical machines running in parallel. Because of the need to assign operations to machines, the FJS is more complex than the classical Job Shop problem. It is therefore also known to be strongly NP-hard \cite{approxfjsp}.
 
-In the remainder of the first section, the FJS is formally defined. The blocking constraint is also explained. In the second section, a local search approach to solve the FJS is explored. Finally, the local search approach is modified to accomodate the blocking constraints in the third section.
+In the remainder of the first section, the FJS is formally defined. The blocking constraint is also defined. In the second section, a local search approach to solve the FJS is explored. Finally, the local search approach is modified to accomodate the blocking constraints in the third section.
 
 \subsection{Formal definition}
 
@@ -40,11 +53,11 @@ Each job $J_i$ consists of a fixed sequence of operations, where $o_i$ refers to
 
 \[ \mathcal{O}_i = \{O_{i,1}, \dots, O_{i, o_i}\} \]
 
-Where $\mathcal{O}$ refers to the set of all operations. Each operation $O_{i,j}$ must be processed on a predetermined machine type.
+Where $\mathcal{O}$ refers to the set of all operations (in this paper, individual operations will sometimes be referred to with a single subscript; in this case it will be clear from the context whether this refers to a set of job operations or a single operation). Each operation $O_{i,j}$ must be processed on a predetermined machine type.
 
 \[ T_{i,j} \in \mathcal{T} = \{T_1, \dots, T_t\} \]
 
-Each machine type $T_k$ has a given number of machines, defined as $m_k$. Furthermore, each operation $O_{i,j}$ has a processing time $p_{i,j}$ and a delay time $w_{i,j}$.
+Each machine type $T_k$ has a given number of machines, defined as $m_k$. We will use $T_{k,l}$ to refer to the $l$-th machine of type $T_k$. Furthermore, each operation $O_{i,j}$ has a processing time $p_{i,j} > 0$ and a delay time $w_{i,j} \geq 0$.
 
 Machines are assumed to be continuously available from time 0, and can complete at most one operation at a time. Preemption is not allowed; the processing time $p_{i,j}$ must be uninterrupted. The delay time $w_{i,j}$ is defined as the time that must pass after operation $O_{i,j}$ is completed, before $O_{i,j + 1}$ may begin. Note that the machine $O_{i,j}$ was being processed on is immediately available.
 
@@ -60,9 +73,11 @@ As a result, our definition of the FJS may exclude applications in settings that
 
 \subsection{Blocking constraint extension}
 
-In some situations, it may be unrealistic to model a scheduling problem as a Flexible Job Shop instance. For example, a manufacturing scenario might introduce storage space constraints. The FJS assumed that a job finished processing on one machine could be removed and placed into an intermediate buffer immediately, while waiting for it to be scheduled onto the next machine. This assumption may be unrealistic, and a factory might not have room for any intermediate buffers.
+In some situations, it may be unrealistic to model a scheduling problem as a Flexible Job Shop instance. For example, a manufacturing scenario might introduce storage space constraints. The FJS assumes that a job finished processing on one machine can be removed and placed into an intermediate buffer immediately, while waiting for it to be scheduled onto the next machine. This assumption may be impractical, and a factory might not have room for any intermediate buffers.
 
 We can extend the problem definition to account for these constraints. In the Flexible Blocking Job Shop problem, a machine that is finished processing a job will be blocked until that job can be moved and processed by a successive machine. Note that this definition removes the distinction between the processing times and waiting times defined above, since the machine will be blocked for the duration of the waiting time regardless of whether subsequent machines are available or not.
+
+This definition introduces several new possible scenarios that must be resolved. For example, what happens when machine $T_{1,1}$ is blocked, waiting for machine $T_{2,1}$ to be freed, while $T_{2,1}$ is blocked waiting for $T_{1,1}$? This depends on the problem scenario, and the mechanisms in place to transfer jobs between machines. In this paper, we will assume that these mechanisms are capable of simultaneously swapping jobs between all blocked machines. Thus, any \emph{blocking cycles} will not cause a deadlock in the schedule.
 
 \section{A local search approach to the FSJ}
 
@@ -81,18 +96,18 @@ The classical Job Shop problem is often modeled as a disjunctive graph (for exam
 
 % vertices
 \node[vertex] (1) at  (0,0) {1};
-\node[vertex] (2) at  (2,0) {2};
-\node[vertex] (3) at  (4,0) {3};
-\node[vertex] (4) at  (6,0) {4};
-\node[vertex] (5) at  (0,-1.3) {5};
-\node[vertex] (6) at  (2,-1.3) {6};
-\node[vertex] (7) at  (0,-2.6) {7};
-\node[vertex] (8) at  (2,-2.6) {8};
+\node[vertex] (2) at  (1.5,0) {2};
+\node[vertex] (3) at  (3,0) {3};
+\node[vertex] (4) at  (4.5,0) {4};
+\node[vertex] (5) at  (0,-1.1) {5};
+\node[vertex] (6) at  (1.5,-1.1) {6};
+\node[vertex] (7) at  (0,-2.2) {7};
+\node[vertex] (8) at  (1.5,-2.2) {8};
 
 % labels
 \node [left] at (-1,0) {$J_1$};
-\node [left] at (-1,-1.3) {$J_2$};
-\node [left] at (-1,-2.6) {$J_3$};
+\node [left] at (-1,-1.1) {$J_2$};
+\node [left] at (-1,-2.2) {$J_3$};
 
 % arcs
 \draw[arc] (1) to (2);
@@ -139,18 +154,18 @@ We could choose to apply several tricks to generate a better schedule, but inste
 
 % vertices
 \node[vertex] (1) at  (0,0) {1};
-\node[vertex] (2) at  (2,0) {2};
-\node[vertex] (3) at  (4,0) {3};
-\node[vertex] (4) at  (6,0) {4};
-\node[vertex] (5) at  (0,-1.3) {5};
-\node[vertex] (6) at  (2,-1.3) {6};
-\node[vertex] (7) at  (0,-2.6) {7};
-\node[vertex] (8) at  (2,-2.6) {8};
+\node[vertex] (2) at  (1.5,0) {2};
+\node[vertex] (3) at  (3,0) {3};
+\node[vertex] (4) at  (4.5,0) {4};
+\node[vertex] (5) at  (0,-1.1) {5};
+\node[vertex] (6) at  (1.5,-1.1) {6};
+\node[vertex] (7) at  (0,-2.2) {7};
+\node[vertex] (8) at  (1.5,-2.2) {8};
 
 % labels
 \node [left] at (-1,0) {$J_1$};
-\node [left] at (-1,-1.3) {$J_2$};
-\node [left] at (-1,-2.6) {$J_3$};
+\node [left] at (-1,-1.1) {$J_2$};
+\node [left] at (-1,-2.2) {$J_3$};
 
 % arcs
 \draw[arc] (1) to (2);
@@ -197,47 +212,142 @@ Therefore, we construct our neighborhood by considering operations $v$ and $w$ s
 
 Let's consider the absolute ordering on the set of operations on a machine type, as defined by the acyclic directed graph corresponding to a feasible schedule. In the classical Job Shop case, a critical block swap identifies two consecutively scheduled nodes on a machine. These two nodes are necessarily consecutive in the absolute ordering, as well. In the FJS problem, this is no longer necessarily the case, since operations in between may have been scheduled on other machines of the same type. If one of these other operations is of the same job as either of the selected nodes, simply reversing the directed edge between the two nodes will lead to one or more cycles.
 
-Consider the following absolute ordering of a machine type. \textbf{Figure \ref{fig:swap}} shows a possible scheduling configuration for this sample, where similar colors indicate the same job.
+\begin{figure}[h]
+\centering
+\begin{ganttchart}[
+		x unit=0.7cm,
+		y unit chart=0.7cm,
+		canvas/.style={draw=none,fill=none},
+		vgrid,
+		vgrid={*1{draw=black!12}},
+		inline,
+		group/.style={draw=none,fill=none},
+		bar top shift=0.1,
+		bar height=0.8,
+		y unit title=0.5cm,
+		title/.style={draw=none,fill=none},
+		include title in canvas=false,
+	]{-1}{12}
 
-\[ \dots \rightarrow O_{1,9} \rightarrow O_{2,12} \rightarrow O_{1,10} \rightarrow O_{2,13} \rightarrow \dots \]
+	\gantttitle{0}{2}
+	\gantttitle{2}{2}
+	\gantttitle{4}{2}
+	\gantttitle{6}{2}
+	\gantttitle{8}{2}
+	\gantttitle{10}{2}
+	\gantttitle{12}{2} \\
 
-We wish to swap the order of operations $O_{1,9}$ and $O_{2,13}$, both on the critical path. We can resolve this situation by reversing a few more arcs, to achieve the following absolute ordering.
+	\ganttgroup[inline=false]{$T_{1,1}$}{0}{1}
+	\ganttbar[bar/.style={fill=yellow}]{2,12}{3}{4}
+	\ganttbar[bar/.style={fill=blue}]{1,10}{6}{7} \\
 
-\[ \dots \rightarrow O_{2,12} \rightarrow O_{2,13} \rightarrow O_{1,9} \rightarrow O_{1,10} \rightarrow \dots \]
+	\ganttgroup[inline=false]{$T_{1,2}$}{0}{1}
+	\ganttbar[bar/.style={fill=blue}]{1,9}{2}{5}
+	\ganttbar[bar/.style={fill=yellow}]{2,13}{6}{8} \\
 
-The swap operation must preserve the job order of all operations in the graph, as above. This ensures that no cycles will be created within a machine type.
+	\ganttgroup[inline=false]{$T_{2,1}$}{0}{1}
+	\ganttbar[bar/.style={fill=blue}]{1,8}{0}{1}
+	\ganttbar[bar/.style={fill=yellow}]{2,14}{9}{11} \\
+	
+	\ganttgroup[inline=false]{$T_{3,1}$}{0}{1}
+	\ganttbar[bar/.style={fill=yellow}]{2,11}{0}{2}
+
+\end{ganttchart}
+\caption{A flexible job shop schedule}
+\label{fig:sch-swap}
+\end{figure}
+
+Consider the schedule shown in \textbf{Figure \ref{fig:sch-swap}}. The absolute ordering that generated this schedule follows:
+
+\[ O_{1,9} \rightarrow O_{2,12} \rightarrow O_{1,10} \rightarrow O_{2,13} \]
+
+We wish to swap the order of operations $O_{1,9}$ and $O_{2,13}$, both on the critical path. Simply swapping their places leads to cycles, since the job operations will be out of order. We can resolve this situation by reversing a few more arcs, to achieve the following absolute ordering.
+
+\[ O_{2,12} \rightarrow O_{2,13} \rightarrow O_{1,9} \rightarrow O_{1,10} \]
+
+This can be done by incrementely swapping both target operations inwards, stopping if the swap would occur with another operation of the same job, or if the two target operations have switched order. This preserves the order among all operations exluding the two targets. Although this swap is now bounded by $O(n)$ in the worst case, in practice it will be much faster, since the two operations being swapped are chronologically sequential. It can be shown that this type of swap for two operations on the longest path can always be done without creating any cycles within the machine type.
+
+Suppose the method above was not able to swap two operations, $O_{i,a_1}$ and $O_{j,b_2}$ for $i \neq j$. Then there exist operations $O_{i,a_2}$ and $O_{j,b_1}$ with $a_1 < a_2$ and $b_1 < b_2$ such that the absolute order is equivalent to the following:
+
+\[ \dots \rightarrow O_{i,a_1} \rightarrow \dots \rightarrow O_{i,a_2} \rightarrow \dots O_{j,b_1}
+\rightarrow \dots \rightarrow O_{j,b_2} \rightarrow \dots \]
+
+This configation does not allow for the above swap without changing the order between the two inner operations, since it would create a cycle. However, it is easy to see that such an ordering will never create a schedule such that $O_{i,a_1}$ and $O_{j,b_2}$ are consecutive on the longest path, since operation $O_{j,b_1}$ has a non-zero processing time, and cannot be scheduled until after or equal to the finish time of $O_{i,a_1}$ due to $O_{i,a_2}$.
 
 \subsubsection{Infeasible solutions}
 
-The critical path neighborhood for the classical Job Shop is guaranteed to consist of only feasible schedules, a very nice result from Van Laarhoven et al \cite{simulatedannealingjsp}. Unfortunately, this is not the case for the Flexible Job Shop. Consider the schedule shown in \textbf{Figure \ref{fig:cycle}}, and the associated absolute ordering below:
+The critical path neighborhood for the classical Job Shop is guaranteed to consist of only feasible schedules, a very nice result from Van Laarhoven et al \cite{simulatedannealingjsp}. Unfortunately, this is not the case for the Flexible Job Shop. We have slightly modified the swap operation to ensure no cycles within a machine type are created. However, this does not guarantee no cycles in the entire graph are generated. Consider the schedule shown in \textbf{Figure \ref{fig:sch-cycle}}, where colors correspond to jobs.
+
+\begin{figure}[h]
+\centering
+\begin{ganttchart}[
+		x unit=0.7cm,
+		y unit chart=0.7cm,
+		canvas/.style={draw=none, fill=none},
+		vgrid,
+		vgrid={*1{draw=black!12}},
+		inline,
+		group/.style={draw=none, fill=none},
+		bar top shift=0.1,
+		bar height=0.8,
+		y unit title=0.5cm,
+		title/.style={draw=none, fill=none},
+		%title label/.style={align=left},
+		include title in canvas=false,
+	]{655}{669}
+
+	\gantttitle{656}{2}
+	\gantttitle{658}{2}
+	\gantttitle{660}{2}
+	\gantttitle{662}{2}
+	\gantttitle{664}{2}
+	\gantttitle{666}{2}
+	\gantttitle{668}{2} \\
+
+	\ganttgroup[inline=false]{$T_{1,1}$}{656}{657}
+	\ganttbar[bar/.style={fill=blue}]{1225}{656}{664}
+	\ganttbar[bar/.style={fill=green}]{1298}{665}{668} \\
+
+	\ganttgroup[inline=false]{$T_{1,2}$}{656}{657}
+	\ganttbar[bar/.style={fill=yellow}]{905}{657}{665} \\
+
+	\ganttgroup[inline=false]{$T_{1,3}$}{656}{657}
+	\ganttbar[bar/.style={fill=darkblue}]{1009}{657}{658}
+	\ganttbar[bar/.style={fill=red}]{1055}{659}{661}
+	\ganttbar[bar/.style={fill=orange}]{1249}{662}{668} \\
+
+	\ganttgroup[inline=false]{$\dots$}{656}{657} \\
+
+	\ganttgroup[inline=false]{$T_{4,1}$}{656}{657}
+	\ganttbar[bar/.style={fill=darkblue}]{1010}{660}{663} \\
+
+	\ganttgroup[inline=false]{$T_{4,4}$}{656}{657}
+	\ganttbar[bar/.style={fill=green}]{1297}{660}{660}
+
+\end{ganttchart}
+\caption{A flexible job shop schedule}
+\label{fig:sch-cycle}
+\end{figure}
+
+The acyclic directed graph that generated this schedule could have the following partial absolute ordering on machine type $T_1$:
+
+\[ \dots \rightarrow O_{1225} \rightarrow O_{905} \rightarrow O_{1009} \rightarrow O_{1055} \rightarrow O_{1249} \rightarrow O_{1298} \rightarrow \dots \]
+
+The ordering on $T_4$ could have $O_{1010}$ placed before $O_{1297}$. Suppose that $O_{1225}$ and $O_{1298}$ were on the critical path, and have been selected for a swap. Applying the swap operation as described above would simply move $O_{1298}$ to the front of the chain. A cycle is created, from $O_{1010} \rightarrow O_{1297} \rightarrow O_{1298} \rightarrow O_{1009}$ and back to $O_{1010}$.
+
+In this case, we could perform checks and swap the two operations after the offending $O_{1009}$. However, correcting for one cycle could potentially lead to another, and the operation would become very expensive. In practice, these kinds of cycles rarely occur, and it is better to simply reverse the swap and allow the heuristic to try something else.
+
+\subsection{Computational results}
+
+Here are some results.
 
 \section{A local search approach to the FBSJ}
 
-\begin{thebibliography}{9}
+\subsection{Changes}
 
-\bibitem{approxfjsp}
-	Jansen, Klaus, Monaldo Mastrolilli, and Roberto Solis-Oba.
-	``Approximation algorithms for flexible job shop problems.''
-	\textit{LATIN 2000: Theoretical Informatics}.
-	Springer Berlin Heidelberg, 2000. 68-77.
+Intuitively, we can use the exact same representation and neighborhood for the FBJS problem as for the FJS.
 
-\bibitem{simulatedannealingjsp}
-	Van Laarhoven, Peter JM, Emile HL Aarts, and Jan Karel Lenstra.
-	``Job shop scheduling by simulated annealing."
-	\textit{Operations research}.
-	40.1 (1992): 113-125.
-
-\bibitem{genbjs}
-	Heinz Gr{\"o}flin, Andreas Klinkert.
-	``A new neighborhood and tabu search for the Blocking Job Shop.''
-	\textit{Discrete Applied Mathematics}. 157 (2009): 3645-3655.
-
-\bibitem{jobshopinfo}
-	Beasley, J.E. 
-	``Job shop scheduling''
-	\textit{OR-Library}.
-	Website, January 2016. http://people.brunel.ac.uk/~mastjjb/jeb/orlib/jobshopinfo.html.
-
-\end{thebibliography}
+%\addcontentsline{toc}{section}{References}
+\printbibliography[heading=bibintoc]
 
 \end{document}

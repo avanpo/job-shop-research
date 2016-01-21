@@ -10,6 +10,8 @@
 static struct graph *graph;
 
 static int serialize_node(struct graph *graph, struct node *node);
+static void serialize_cycle(struct graph *graph, struct node **ops, int n);
+static int is_cycle_serializable(struct node **ops, struct graph *graph, int *not_serializable, int m);
 static int is_serializable(struct node *node);
 static void deserialize_schedule_node(struct schedule *sch, struct node *node);
 static void deserialize_graph(struct graph *graph);
@@ -104,12 +106,14 @@ int serialize_graph(struct graph *graph)
 
 	int *progress = calloc(graph->num_types, sizeof(int));
 	int *serialized = calloc(graph->num_nodes, sizeof(int));
+	int *not_serializable = calloc(graph->num_nodes, sizeof(int));
 
-	int i, j, l, loop_guard = 0, makespan = 0;
+	int i, j, l, m = 0, k, loop_guard = 0, makespan = 0;
 	for (i = graph->num_nodes, j = 0; i; j %= graph->num_types) {
-		if (loop_guard > graph->num_types) {
+		if (loop_guard > graph->num_types * 2) {
 			free(progress);
 			free(serialized);
+			free(not_serializable);
 			return 0;
 		}
 		if (progress[j] == graph->types[j].num_ops) {
@@ -118,9 +122,10 @@ int serialize_graph(struct graph *graph)
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
-		if ((n->prev == NULL || serialized[n->prev->id]) && is_serializable(n)) {
+		int available = (n->prev == NULL || serialized[n->prev->id]);
+		if (available && is_serializable(n)) {
 			l = serialize_node(graph, n);
-			serialized[n->id]++;
+			++serialized[n->id];
 
 			if (l > makespan) {
 				makespan = l;
@@ -130,6 +135,49 @@ int serialize_graph(struct graph *graph)
 			++progress[j];
 			--i;
 			loop_guard = 0;
+			memset(not_serializable, 0, graph->num_nodes * sizeof(int));
+			m = 0;
+		} else if (available && graph->blocking) {
+			int seen = 0;
+			for (k = 0; k < m; ++k) {
+				if (not_serializable[k] == n->id) {
+					++seen;
+					break;
+				}
+			}
+			if (!seen) {
+				not_serializable[m++] = n->id;
+			}
+
+			struct node **ops = calloc(m, sizeof(struct node *));
+
+			int o = 0;
+			if (m > 1 && loop_guard > graph->num_types) {
+				o = is_cycle_serializable(ops, graph, not_serializable, m);
+			}
+
+			if (o) {
+				serialize_cycle(graph, ops, o);
+				for (k = 0; k < o; ++k) {
+					++serialized[ops[k]->id];
+
+					l = ops[k]->start_time + ops[k]->op->proc_time + ops[k]->op->idle_time;
+					if (l > makespan) {
+						makespan = l;
+						last = ops[k];
+					}
+
+					++progress[ops[k]->type->id];
+					--i;
+				}
+				loop_guard = 0;
+				memset(ops, 0, m * sizeof(struct node *));
+				o = 0;
+			} else {
+				++j;
+				++loop_guard;
+			}
+			free(ops);
 		} else {
 			++j;
 			++loop_guard;
@@ -140,6 +188,7 @@ int serialize_graph(struct graph *graph)
 
 	free(progress);
 	free(serialized);
+	free(not_serializable);
 	return 1;
 }
 
@@ -298,6 +347,7 @@ static int serialize_node(struct graph *graph, struct node *node)
 
 	// calculate time at which at least 1 machine is
 	// available
+	// check: !blocked || blocked by prev job op
 	int machine = -1;
 	int machine_release = INT_MAX;
 	int m;
@@ -353,9 +403,78 @@ static int serialize_node(struct graph *graph, struct node *node)
 	return finish_time;
 }
 
+static void serialize_cycle(struct graph *graph, struct node **ops, int n)
+{
+	int i;
+	int start_time = 0;
+	for (i = 0; i < n; ++i) {
+		int t =	ops[i]->prev->start_time + ops[i]->prev->op->proc_time + ops[i]->prev->op->idle_time;
+		if (t > start_time) {
+			start_time = t;
+		}
+	}
+
+	for (i = 0; i < n; ++i) {
+		struct node *node = ops[i];
+		int finish_time = start_time + node->op->proc_time;
+		int machine = ops[i == 0 ? n - 1 : i - 1]->prev->machine;
+
+		if (graph->blocking && !node->next) {
+			node->type->blocked[machine] = 0;
+		}
+
+		deserialize_schedule_node(graph->schedule, node);
+		graph->schedule->types[node->type->id].machines[machine].op_start_times[node->id] = start_time;
+		node->start_time = start_time;
+		node->machine = machine;
+		node->type->prev_start_op = start_time > node->type->prev_start_time ? node->id : node->type->prev_start_op;
+		node->type->prev_start_time = start_time > node->type->prev_start_time ? start_time : node->type->prev_start_time;
+		node->type->end_times[machine] = finish_time;
+		node->type->end_ops[machine] = node->id;
+	}
+}
+
+// return number of nodes inside serializable blocking cycle
+static int is_cycle_serializable(struct node **ops, struct graph *graph, int *not_serializable, int m)
+{
+	// this could definitely be optimized and may not find
+	// all possible blocking cycles
+	int *used = calloc(graph->num_nodes, sizeof(int));
+
+	int found_loop = 0, o = 0;
+	int x, y, z;
+	for (x = 0; x < m && !found_loop; ++x) {
+		if (!(graph->nodes[not_serializable[x]].prev)) {
+			continue;
+		}
+		ops[o++] = graph->nodes + not_serializable[x];
+		++used[not_serializable[x]];
+		for (y = x + 1, z = 0; z < m * m; y = (y + 1) % m, ++z) {
+			struct node *curr = graph->nodes + not_serializable[y];
+			if (!used[curr->id] && curr->prev && curr->type == ops[o - 1]->prev->type) {
+				ops[o++] = curr;
+				++used[curr->id];
+				if (curr->prev->type == ops[0]->type) {
+					++found_loop;
+					break;
+				}
+			}
+		}
+		if (!found_loop) {
+			memset(ops, 0, m * sizeof(struct node *));
+			o = 0;
+		}
+		memset(used, 0, graph->num_nodes * sizeof(int));
+	}
+	
+	free(used);
+	return o;
+}
+
 static int is_serializable(struct node *node)
 {
 	int m;
+	// check: !blocked || blocked by prev job op
 	for (m = 0; m < node->type->num_machines; ++m) {
 		if (!node->type->blocked[m] || (node->prev && node->type->end_ops[m] == node->prev->id)) {
 			return 1;

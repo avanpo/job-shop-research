@@ -299,9 +299,9 @@ static int perform_swap(struct graph *graph, double temp)
 	} else {
 		reverse_swap(n1->type);
 		serialize_graph(graph);
-		if (!serialized) return 1;
-		//printf("rejected: %d and %d\n", n1->id, n2->id);
-		//print_longest_path(graph);
+		if (!serialized) {
+			return 1;
+		}
 		return 2;
 	}
 }

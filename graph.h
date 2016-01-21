@@ -37,8 +37,9 @@ struct node {
 	struct operation *op;
 	struct node_type *type;
 	struct node *prev;
-	struct node *next;
 
+	// for serialization
+	struct node *next;
 	struct node *prev_in_path;
 	int start_time;
 	int machine;

@@ -293,9 +293,14 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
  */
 static int find_and_swap(struct graph *graph)
 {
+	int ne = graph->neighborhood;
+	if (ne == 2) {
+		ne -= (1 + rand() % 2);
+	}
+
 	struct node *n2 = NULL;
 
-	if (graph->neighborhood) {
+	if (ne) {
 		n2 = get_consecutive_swap_possibility(graph);
 	} else {
 		n2 = get_swap_possibility(graph);
@@ -307,7 +312,7 @@ static int find_and_swap(struct graph *graph)
 
 	graph->type_backup = n2->type->id;
 
-	if (graph->neighborhood) {
+	if (ne) {
 		swap_consecutive_operations(n2);
 	} else {
 		struct node *n1 = n2->prev_in_path;

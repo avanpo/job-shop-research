@@ -34,7 +34,10 @@ int main(int argc, char **argv)
 		} else if (argv[i][1] == 'b') {
 			++blocking;
 		} else if (argv[i][1] == 'n') {
-			++neighborhood;
+			if (argv[i + 1][0] == '-') ++error;
+
+			sscanf(argv[++i], "%d", &neighborhood);
+			if (neighborhood < 0 || neighborhood > 2) ++error;
 		} else if (argv[i][1] == 'v' && argv[i][2] == '1') {
 			++verbose;
 		} else if (argv[i][1] == 'v' && argv[i][2] == '2') {
@@ -55,7 +58,10 @@ int main(int argc, char **argv)
 		printf("Options:\n");
 		printf("  -r RESTARTS   Set the number of restarts\n");
 		printf("  -b            Set whether jobs are blocking or not\n");
-		printf("  -n            Increase the neighborhood to all edge reversals\n");
+		printf("  -n VAL        Set the neighborhood. VAL can contain the following:\n");
+		printf("                  VAL=0  Only swaps on the critical path (default)\n");
+		printf("                  VAL=1  Only naive swaps\n");
+		printf("                  VAL=2  A combination of the above\n");
 		printf("  -v1           Set the verbose option\n");
 		printf("  -v2           Set the very verbose option\n");
 		printf("  -d            Draw schedule and instance on search finish\n");

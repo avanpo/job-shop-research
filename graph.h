@@ -7,11 +7,14 @@
 struct graph {
 	struct instance *inst;
 	int blocking;
+	int neighborhood;
 
 	int num_types;
 	struct node_type *types;
 	int num_nodes;
 	struct node *nodes;
+
+	int type_backup;
 
 	struct node *last;
 	struct schedule *schedule;
@@ -37,20 +40,22 @@ struct node {
 	struct operation *op;
 	struct node_type *type;
 	struct node *prev;
+	struct node *next;
+	int order_index;
 
 	// for serialization
-	struct node *next;
 	struct node *prev_in_path;
 	int start_time;
 	int machine;
 };
 
-struct graph *construct_graph(struct instance *inst, int blocking);
+struct graph *construct_graph(struct instance *inst, int blocking, int neighborhood);
 void destroy_graph(struct graph *graph);
 
 void init_graph(struct graph *graph);
 int serialize_graph(struct graph *graph);
 
+void swap_consecutive_operations(struct node *n2);
 void swap_operations(struct node *n1, struct node *n2);
 void reverse_swap(struct node_type *type);
 int get_longest_path(struct graph *graph, int *path);

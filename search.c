@@ -7,8 +7,6 @@
 #include "schedule.h"
 #include "search.h"
 
-//static int verbose = 0;
-
 static void replace_best_schedule(struct sa_state *sa);
 static void update_stats(struct sa_state *sa, int result);
 static int handle_restart(struct sa_state *sa);
@@ -23,7 +21,7 @@ static int perform_swap(struct graph *graph, double temp);
 static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
-struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int write)
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int neighborhood, int write)
 {
 	srand(time(NULL));
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
@@ -32,7 +30,7 @@ struct sa_state *construct_sa_search(struct instance *inst, int verbose, int dra
 	sa->initial_temp = 25;
 	sa->alpha = 0.95;
 	
-	struct graph *graph = construct_graph(inst, blocking);
+	struct graph *graph = construct_graph(inst, blocking, neighborhood);
 	init_graph(graph);
 	sa->graph = graph;
 
@@ -253,6 +251,26 @@ static struct node *get_swap_possibility(struct graph *graph)
 	return graph->nodes + node_id;
 }
 
+/* takes serialized graph, selects random operation of random
+ * type with the previously ordered operation of a different job
+ */
+static struct node *get_consecutive_swap_possibility(struct graph *graph)
+{
+	struct node *n1 = NULL, *n2 = NULL;
+	int t = 0, o = 0;
+
+	do {
+		t = rand() % graph->num_types;
+		o = rand() % (graph->types[t].num_ops - 1);
+		n1 = graph->nodes + graph->types[t].ops_order[o];
+		n2 = graph->nodes + graph->types[t].ops_order[o + 1];
+	} while (n1->op->job == n2->op->job);
+
+	n2->order_index = o + 1;
+
+	return n2;
+}
+
 /* returns 0 or 1 depending on whether new solution accepted or not
  */
 static int is_accepted(double temp, int old_makespan, int new_makespan)
@@ -267,9 +285,35 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 	int p = (int)floor(100000 * exp(diff / temp));
 	int r = rand() % 100000;
 
-	//printf("%02d/%02d (old: %d, new: %d, diff: %f)\n", r, p, old_makespan, new_makespan, diff);
-
 	return r < p;
+}
+
+/* finds a swap depending on neighborhood and performs
+ * said swap
+ */
+static int find_and_swap(struct graph *graph)
+{
+	struct node *n2 = NULL;
+
+	if (graph->neighborhood) {
+		n2 = get_consecutive_swap_possibility(graph);
+	} else {
+		n2 = get_swap_possibility(graph);
+	}
+
+	if (n2 == NULL) {
+		return 0;
+	}
+
+	graph->type_backup = n2->type->id;
+
+	if (graph->neighborhood) {
+		swap_consecutive_operations(n2);
+	} else {
+		struct node *n1 = n2->prev_in_path;
+		swap_operations(n1, n2);
+	}
+	return 1;
 }
 
 /* performs randomized swap between consecutive operations
@@ -283,13 +327,9 @@ static int perform_swap(struct graph *graph, double temp)
 {
 	int old_makespan = graph->schedule->makespan;
 
-	struct node *n2 = get_swap_possibility(graph);
-	if (n2 == NULL) {
+	if (!find_and_swap(graph)) {
 		return 3;
 	}
-	struct node *n1 = n2->prev_in_path;
-
-	swap_operations(n1, n2);
 
 	int serialized = serialize_graph(graph);
 
@@ -297,7 +337,7 @@ static int perform_swap(struct graph *graph, double temp)
 	if (serialized && is_accepted(temp, old_makespan, new_makespan)) {
 		return 0;
 	} else {
-		reverse_swap(n1->type);
+		reverse_swap(graph->types + graph->type_backup);
 		serialize_graph(graph);
 		if (!serialized) {
 			return 1;

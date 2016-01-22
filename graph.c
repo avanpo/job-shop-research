@@ -16,7 +16,7 @@ static int is_serializable(struct node *node);
 static void deserialize_schedule_node(struct schedule *sch, struct node *node);
 static void deserialize_graph(struct graph *graph);
 
-struct graph *construct_graph(struct instance *inst, int blocking)
+struct graph *construct_graph(struct instance *inst, int blocking, int neighborhood)
 {
 	struct graph *g = calloc(1, sizeof(struct graph));
 	struct node_type *t = calloc(inst->num_types, sizeof(struct node_type));
@@ -26,6 +26,7 @@ struct graph *construct_graph(struct instance *inst, int blocking)
 
 	g->inst = inst;
 	g->blocking = blocking;
+	g->neighborhood = neighborhood;
 
 	g->num_types = inst->num_types;
 	g->types = t;
@@ -122,6 +123,7 @@ int serialize_graph(struct graph *graph)
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
+		//printf("try serialize %2d: type %d => ", n->id, n->type->id);
 		int available = (n->prev == NULL || serialized[n->prev->id]);
 		if (available && is_serializable(n)) {
 			l = serialize_node(graph, n);
@@ -137,7 +139,9 @@ int serialize_graph(struct graph *graph)
 			loop_guard = 0;
 			memset(not_serializable, 0, graph->num_nodes * sizeof(int));
 			m = 0;
+			//printf("success\n");
 		} else if (available && graph->blocking) {
+			//printf("blocked ");
 			int seen = 0;
 			for (k = 0; k < m; ++k) {
 				if (not_serializable[k] == n->id) {
@@ -158,8 +162,10 @@ int serialize_graph(struct graph *graph)
 
 			if (o) {
 				serialize_cycle(graph, ops, o);
+				//printf("success: ");
 				for (k = 0; k < o; ++k) {
 					++serialized[ops[k]->id];
+					//printf("%d ", ops[k]->id);
 
 					l = ops[k]->start_time + ops[k]->op->proc_time + ops[k]->op->idle_time;
 					if (l > makespan) {
@@ -171,14 +177,17 @@ int serialize_graph(struct graph *graph)
 					--i;
 				}
 				loop_guard = 0;
-				memset(ops, 0, m * sizeof(struct node *));
-				o = 0;
+				memset(not_serializable, 0, graph->num_nodes * sizeof(int));
+				m = 0;
 			} else {
+				//printf("fail");
 				++j;
 				++loop_guard;
 			}
 			free(ops);
+			//printf("\n");
 		} else {
+			//printf("n/a\n");
 			++j;
 			++loop_guard;
 		}
@@ -192,8 +201,26 @@ int serialize_graph(struct graph *graph)
 	return 1;
 }
 
+/* swap operation order of two consecutively ordered operations
+ * of different jobs in a machine type
+ */
+void swap_consecutive_operations(struct node *n2)
+{
+	struct node_type *t = n2->type;
+	int index = n2->order_index;
+
+	int i, tmp;
+	for (i = 0; i < t->num_ops; ++i) {
+		t->ops_order_backup[i] = t->ops_order[i];
+	}
+
+	tmp = t->ops_order[index];
+	t->ops_order[index] = t->ops_order[index - 1];
+	t->ops_order[index - 1] = tmp;
+}
+
 /* swap operation order while maintaining job operation precedence
- * within machine ordering
+ * within machine type ordering
  */
 void swap_operations(struct node *n1, struct node *n2)
 {
@@ -396,7 +423,7 @@ static int serialize_node(struct graph *graph, struct node *node)
 	node->start_time = start_time;
 	node->machine = machine;
 	node->type->prev_start_op = start_time > node->type->prev_start_time ? node->id : node->type->prev_start_op;
-	node->type->prev_start_time = start_time;
+	node->type->prev_start_time = start_time > node->type->prev_start_time ? start_time : node->type->prev_start_time;
 	node->type->end_times[machine] = finish_time;
 	node->type->end_ops[machine] = node->id;
 
@@ -418,6 +445,8 @@ static void serialize_cycle(struct graph *graph, struct node **ops, int n)
 		struct node *node = ops[i];
 		int finish_time = start_time + node->op->proc_time;
 		int machine = ops[i == 0 ? n - 1 : i - 1]->prev->machine;
+
+		node->prev_in_path = graph->nodes + node->type->end_ops[machine];
 
 		if (graph->blocking && !node->next) {
 			node->type->blocked[machine] = 0;

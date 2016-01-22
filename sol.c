@@ -15,6 +15,7 @@ int main(int argc, char **argv)
 	int verbose = 0;
 	int draw = 0;
 	int blocking = 0;
+	int neighborhood = 0;
 	int write = 0;
 
 	int i;
@@ -32,6 +33,8 @@ int main(int argc, char **argv)
 			sscanf(argv[++i], "%d", &restarts);
 		} else if (argv[i][1] == 'b') {
 			++blocking;
+		} else if (argv[i][1] == 'n') {
+			++neighborhood;
 		} else if (argv[i][1] == 'v' && argv[i][2] == '1') {
 			++verbose;
 		} else if (argv[i][1] == 'v' && argv[i][2] == '2') {
@@ -52,6 +55,7 @@ int main(int argc, char **argv)
 		printf("Options:\n");
 		printf("  -r RESTARTS   Set the number of restarts\n");
 		printf("  -b            Set whether jobs are blocking or not\n");
+		printf("  -n            Increase the neighborhood to all edge reversals\n");
 		printf("  -v1           Set the verbose option\n");
 		printf("  -v2           Set the very verbose option\n");
 		printf("  -d            Draw schedule and instance on search finish\n");
@@ -60,7 +64,7 @@ int main(int argc, char **argv)
 	}
 
 	struct instance *inst = read_inst(fname);
-	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking, write);
+	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking, neighborhood, write);
 
 	start_sa_search(sa, restarts);
 

@@ -271,7 +271,7 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 		return 0;
 	}
 
-	double diff = (double)(old_makespan - new_makespan);
+	double diff = (double)((old_makespan - new_makespan) * 100) / (double)old_makespan;
 	int p = (int)floor(100000 * exp(diff / temp));
 	int r = rand() % 100000;
 
@@ -294,13 +294,10 @@ static int find_and_swap(struct graph *graph)
 
 	if (ne == 0) {
 		n2 = get_crit_path_possibility(graph);
-		graph->type_backup = n2->type;
 	} else if (ne == 1) {
 		n2 = get_naive_possibility(graph);
-		graph->type_backup = NULL;
 	} else {
 		n2 = get_naive_possibility(graph);
-		graph->type_backup = n2->type;
 	}
 
 	if (n2 == NULL) {
@@ -308,11 +305,14 @@ static int find_and_swap(struct graph *graph)
 	}
 
 	if (ne == 0) {
+		graph->type_backup = n2->type;
 		struct node *n1 = n2->prev_in_path;
 		neighborhood_crit_path(n1, n2);
 	} else if (ne == 1) {
+		graph->type_backup = NULL;
 		neighborhood_left_shift(graph, n2);
 	} else {
+		graph->type_backup = n2->type;
 		neighborhood_naive(n2);
 	}
 	return 1;

@@ -1,4 +1,5 @@
 sol
+instances/jobshop/*
 instances/instgen
 instances/*.txt
 sols/*.txt

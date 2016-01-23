@@ -35,15 +35,15 @@ struct graph *construct_graph(struct instance *inst, int blocking, int neighborh
 
 	g->schedule = construct_schedule(inst);
 
-	int *backup = calloc(inst->num_ops, sizeof(int));
-
 	int i;
 	for (i = 0; i < inst->num_types; ++i, ++t) {
+		t->nodes = n;
+
 		t->id = i;
 		t->num_machines = inst->types[i].num_machines;
 		t->num_ops = inst->types[i].num_ops;
 		t->ops_order = calloc(inst->types[i].num_ops, sizeof(int));
-		t->ops_order_backup = backup;
+		t->ops_order_backup = calloc(inst->types[i].num_ops, sizeof(int));
 
 		t->blocked = calloc(inst->types[i].num_machines, sizeof(int));
 		t->end_times = calloc(inst->types[i].num_machines, sizeof(int));
@@ -93,6 +93,7 @@ void init_graph(struct graph *graph)
 		for (o = 0, i = 0; o < graph->num_nodes; ++o) {
 			if (graph->inst->types[t].ops[o]) {
 				graph->types[t].ops_order[i] = o;
+				graph->nodes[o].order_index = i;
 				++i;
 			}
 		}
@@ -123,7 +124,6 @@ int serialize_graph(struct graph *graph)
 			continue;
 		}
 		n = graph->nodes + graph->types[j].ops_order[progress[j]];
-		//printf("try serialize %2d: type %d => ", n->id, n->type->id);
 		int available = (n->prev == NULL || serialized[n->prev->id]);
 		if (available && is_serializable(n)) {
 			l = serialize_node(graph, n);
@@ -139,9 +139,7 @@ int serialize_graph(struct graph *graph)
 			loop_guard = 0;
 			memset(not_serializable, 0, graph->num_nodes * sizeof(int));
 			m = 0;
-			//printf("success\n");
 		} else if (available && graph->blocking) {
-			//printf("blocked ");
 			int seen = 0;
 			for (k = 0; k < m; ++k) {
 				if (not_serializable[k] == n->id) {
@@ -162,10 +160,8 @@ int serialize_graph(struct graph *graph)
 
 			if (o) {
 				serialize_cycle(graph, ops, o);
-				//printf("success: ");
 				for (k = 0; k < o; ++k) {
 					++serialized[ops[k]->id];
-					//printf("%d ", ops[k]->id);
 
 					l = ops[k]->start_time + ops[k]->op->proc_time + ops[k]->op->idle_time;
 					if (l > makespan) {
@@ -180,14 +176,11 @@ int serialize_graph(struct graph *graph)
 				memset(not_serializable, 0, graph->num_nodes * sizeof(int));
 				m = 0;
 			} else {
-				//printf("fail");
 				++j;
 				++loop_guard;
 			}
 			free(ops);
-			//printf("\n");
 		} else {
-			//printf("n/a\n");
 			++j;
 			++loop_guard;
 		}
@@ -201,28 +194,96 @@ int serialize_graph(struct graph *graph)
 	return 1;
 }
 
-/* swap operation order of two consecutively ordered operations
- * of different jobs in a machine type
+/* move a given operation as far as possible to a random target
+ * destination within the machine type ordering
  */
-void swap_consecutive_operations(struct node *n2)
+void neighborhood_naive(struct node *n)
 {
-	struct node_type *t = n2->type;
-	int index = n2->order_index;
+	struct node_type *t = n->type;
 
-	int i, tmp;
-	for (i = 0; i < t->num_ops; ++i) {
-		t->ops_order_backup[i] = t->ops_order[i];
+	int i = n->order_index;
+	int target = rand() % (t->num_ops - 1);
+	if (target == i) ++target;
+	struct node *node;
+
+	int k;
+
+	// backup the order, in case the swap needs to be reversed
+	for (k = 0; k < t->num_ops; ++k) {
+		t->ops_order_backup[k] = t->ops_order[k];
 	}
 
-	tmp = t->ops_order[index];
-	t->ops_order[index] = t->ops_order[index - 1];
-	t->ops_order[index - 1] = tmp;
+	if (target >= i) {
+		for (k = i + 1; k <= target; ++k) {
+			node = n - n->id + t->ops_order[k];
+			if (n->op->job->id != node->op->job->id) {
+				t->ops_order[k - 1] = node->id;
+				t->ops_order[k] = n->id;
+				node->order_index = k - 1;
+				n->order_index = k;
+			} else {
+				break;
+			}
+		}
+	} else {
+		for (k = i - 1; k >= target; --k) {
+			node = n - n->id + t->ops_order[k];
+			if (n->op->job->id != node->op->job->id) {
+				t->ops_order[k + 1] = node->id;
+				t->ops_order[k] = n->id;
+				node->order_index = k + 1;
+				n->order_index = k;
+			} else {
+				break;
+			}
+		}
+	}
+}
+
+/* do a left shift of random size on all operations in a job
+ */
+void neighborhood_left_shift(struct graph *graph, struct node *n_ref)
+{
+	struct job *job = n_ref->op->job;
+
+	struct node_type *t;
+	struct node *n_target, *n_curr;
+
+	int i, j, target;
+
+	// backup the order of all types, in case the neighborhood
+	// needs to be reversed
+	for (i = 0; i < graph->num_types; ++i) {
+		for (j = 0; j < graph->types[i].num_ops; ++j) {
+			graph->types[i].ops_order_backup[j] = graph->types[i].ops_order[j];
+		}
+	}
+
+	for (i = 0; i < job->num_ops; ++i) {
+		n_target = graph->nodes + job->ops[i].id;
+		t = n_target->type;
+		if (n_target->order_index == 0) {
+			continue;
+		}
+		target = rand() % (n_target->order_index + 1);
+		for (j = n_target->order_index - 1; j >= target; --j) {
+			n_curr = graph->nodes + t->ops_order[j];
+			if (n_target->op->job->id != n_curr->op->job->id) {
+				t->ops_order[j + 1] = n_curr->id;
+				t->ops_order[j] = n_target->id;
+				n_curr->order_index = j + 1;
+				n_target->order_index = j;
+			} else {
+				break;
+			}
+		}
+	}
 }
 
 /* swap operation order while maintaining job operation precedence
  * within machine type ordering
  */
-void swap_operations(struct node *n1, struct node *n2)
+void neighborhood_crit_path(struct node *n1, struct node *n2)
 {
 	if (n1->type != n2->type) {
 		fprintf(stderr, "Cannot swap operations %d and %d: machine types do not match.\n", n1->id, n2->id);
@@ -263,6 +324,8 @@ void swap_operations(struct node *n1, struct node *n2)
 		if (node->op->job->id != n2->op->job->id) {
 			t->ops_order[i2] = node->id;
 			t->ops_order[i] = n2->id;
+			node->order_index = i2;
+			n2->order_index = i;
 			i2 = i;
 			if (node == n1) {
 				++done;
@@ -276,6 +339,8 @@ void swap_operations(struct node *n1, struct node *n2)
 		if (node->op->job->id != n1->op->job->id) {
 			t->ops_order[i1] = node->id;
 			t->ops_order[i] = n1->id;
+			node->order_index = i1;
+			n1->order_index = i;
 			i1 = i;
 			if (node == n2) {
 				++done;
@@ -293,11 +358,24 @@ void swap_operations(struct node *n1, struct node *n2)
 	}
 }
 
-void reverse_swap(struct node_type *type)
+static void reverse_swap_type(struct node_type *t)
 {
 	int i;
-	for (i = 0; i < type->num_ops; ++i) {
-		type->ops_order[i] = type->ops_order_backup[i];
+	for (i = 0; i < t->num_ops; ++i) {
+		t->ops_order[i] = t->ops_order_backup[i];
+		(t->nodes + t->ops_order_backup[i])->order_index = i;
+	}
+}
+
+void reverse_swap(struct graph *graph, struct node_type *t)
+{
+	if (t != NULL) {
+		reverse_swap_type(t);
+		return;
+	}
+	int i;
+	for (i = 0; i < graph->num_types; ++i) {
+		reverse_swap_type(graph->types + i);
 	}
 }
 

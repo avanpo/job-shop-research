@@ -18,7 +18,6 @@ static void print_sa_epoch_stats(struct sa_state *sa);
 static void validate_best_schedule(struct sa_state *sa);
 static void print_elapsed_time(int start_time);
 static int perform_swap(struct graph *graph, double temp);
-static struct node *get_swap_possibility(struct graph *graph);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
 struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int neighborhood, int write)
@@ -222,7 +221,7 @@ static void print_elapsed_time(int start_time)
  * longest path is executed by the same machine, and not
  * in the same job
  */
-static struct node *get_swap_possibility(struct graph *graph)
+static struct node *get_crit_path_possibility(struct graph *graph)
 {
 	int *path = calloc(graph->num_nodes, sizeof(int));
 	int *possible = calloc(graph->num_nodes, sizeof(int));
@@ -252,23 +251,14 @@ static struct node *get_swap_possibility(struct graph *graph)
 }
 
 /* takes serialized graph, selects random operation of random
- * type with the previously ordered operation of a different job
+ * type
  */
-static struct node *get_consecutive_swap_possibility(struct graph *graph)
+static struct node *get_naive_possibility(struct graph *graph)
 {
-	struct node *n1 = NULL, *n2 = NULL;
-	int t = 0, o = 0;
+	int t = rand() % graph->num_types;
+	int o = rand() % (graph->types[t].num_ops);
 
-	do {
-		t = rand() % graph->num_types;
-		o = rand() % (graph->types[t].num_ops - 1);
-		n1 = graph->nodes + graph->types[t].ops_order[o];
-		n2 = graph->nodes + graph->types[t].ops_order[o + 1];
-	} while (n1->op->job == n2->op->job);
-
-	n2->order_index = o + 1;
-
-	return n2;
+	return graph->nodes + graph->types[t].ops_order[o];
 }
 
 /* returns 0 or 1 depending on whether new solution accepted or not
@@ -294,29 +284,36 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 static int find_and_swap(struct graph *graph)
 {
 	int ne = graph->neighborhood;
-	if (ne == 2) {
-		ne -= (1 + rand() % 2);
+	if (ne == 3) {
+		ne = rand() % 2;
+	} else if (ne == 4) {
+		ne = rand() % 3;
 	}
 
 	struct node *n2 = NULL;
 
-	if (ne) {
-		n2 = get_consecutive_swap_possibility(graph);
+	if (ne == 0) {
+		n2 = get_crit_path_possibility(graph);
+		graph->type_backup = n2->type;
+	} else if (ne == 1) {
+		n2 = get_naive_possibility(graph);
+		graph->type_backup = NULL;
 	} else {
-		n2 = get_swap_possibility(graph);
+		n2 = get_naive_possibility(graph);
+		graph->type_backup = n2->type;
 	}
 
 	if (n2 == NULL) {
 		return 0;
 	}
 
-	graph->type_backup = n2->type->id;
-
-	if (ne) {
-		swap_consecutive_operations(n2);
-	} else {
+	if (ne == 0) {
 		struct node *n1 = n2->prev_in_path;
-		swap_operations(n1, n2);
+		neighborhood_crit_path(n1, n2);
+	} else if (ne == 1) {
+		neighborhood_left_shift(graph, n2);
+	} else {
+		neighborhood_naive(n2);
 	}
 	return 1;
 }
@@ -342,7 +339,7 @@ static int perform_swap(struct graph *graph, double temp)
 	if (serialized && is_accepted(temp, old_makespan, new_makespan)) {
 		return 0;
 	} else {
-		reverse_swap(graph->types + graph->type_backup);
+		reverse_swap(graph, graph->type_backup);
 		serialize_graph(graph);
 		if (!serialized) {
 			return 1;

@@ -14,13 +14,15 @@ struct graph {
 	int num_nodes;
 	struct node *nodes;
 
-	int type_backup;
+	struct node_type *type_backup;
 
 	struct node *last;
 	struct schedule *schedule;
 };
 
 struct node_type {
+	struct node *nodes;
+
 	int id;
 	int num_machines;
 	int num_ops;
@@ -55,9 +57,10 @@ void destroy_graph(struct graph *graph);
 void init_graph(struct graph *graph);
 int serialize_graph(struct graph *graph);
 
-void swap_consecutive_operations(struct node *n2);
-void swap_operations(struct node *n1, struct node *n2);
-void reverse_swap(struct node_type *type);
+void neighborhood_naive(struct node *n);
+void neighborhood_left_shift(struct graph *graph, struct node *n_ref);
+void neighborhood_crit_path(struct node *n1, struct node *n2);
+void reverse_swap(struct graph *graph, struct node_type *type);
 int get_longest_path(struct graph *graph, int *path);
 
 void print_graph(struct graph *graph);

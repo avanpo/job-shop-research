@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 
 	// op time settings
 	int proc_low = 1;
-	int proc_high = 10;
+	int proc_high = 20 * size;
 	int idle_low = 0;
 	int idle_high = 0;
 

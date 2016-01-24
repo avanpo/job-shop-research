@@ -10,8 +10,8 @@ int main(int argc, char **argv)
 	int size = 0;
 	int width = 0;
 	if (argc != 4 || sscanf(argv[2], "%d", &size) != 1 || sscanf(argv[3], "%d", &width) != 1 ||
-			size < 1 || size > 5 || width < 1 || width > 3) {
-		fprintf(stderr, "Please provide correct arguments:\n  ./instgen OUTPUT_FILE_NAME SIZE WIDTH\nWhere SIZE is an integer in the range [1,5] and WIDTH is an integer in the range [1,3].\n");
+			size < 1 || size > 5 || width < 1 || width > 2) {
+		fprintf(stderr, "Please provide correct arguments:\n  ./instgen OUTPUT_FILE_NAME SIZE WIDTH\nWhere SIZE is an integer in the range [1,5] and WIDTH is an integer in the range [1,2].\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -29,13 +29,12 @@ int main(int argc, char **argv)
 	int idle_high = 10;
 
 	// calculate sizes, ranges
-	int num_types = (int)pow(2, size - 1) * width;
+	int num_types = 1 + size;
 	int num_machines_low = size * width;
 	int num_machines_high = size * width * 2;
 
-	int num_jobs = (int)pow(2, size + 3);
-	int num_ops_low = (int)pow(2, size + 1);
-	int num_ops_high = (int)pow(2, size + 2);
+	int num_jobs = (int)pow(2, size + 2);
+	int num_ops = (int)pow(2, size + 2);
 
 	int i, j;
 	int n, type, proc, idle;
@@ -46,9 +45,8 @@ int main(int argc, char **argv)
 	}
 	fprintf(fp, "jobs %d\n", num_jobs);
 	for (i = 0; i < num_jobs; ++i) {
-		n = (rand() % (num_ops_low - num_ops_high)) + num_ops_low;
-		fprintf(fp, "ops %d\n", n);
-		for (j = 0; j < n; ++j) {
+		fprintf(fp, "ops %d\n", num_ops);
+		for (j = 0; j < num_ops; ++j) {
 			type = rand() % num_types;
 			proc = (rand() % (proc_low - proc_high)) + proc_low;
 			idle = (rand() % (idle_low - idle_high)) + idle_low;

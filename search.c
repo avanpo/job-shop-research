@@ -203,17 +203,18 @@ static void validate_best_schedule(struct sa_state *sa)
 
 static void print_elapsed_time(int start_time)
 {
-	int hour, min, sec;
+	//int hour, min, sec;
 	int t = time(NULL) - start_time;
+	printf("  Elapsed time: %d second%s\n", t, t == 1 ? "" : "s");
 
-	hour = t / 3600;
-	min = (t % 3600) / 60;
-	sec = (t % 3600) % 60;
+	//hour = t / 3600;
+	//min = (t % 3600) / 60;
+	//sec = t % 60;
 
-	printf("  Elapsed time: ");
-	if (hour) printf("%d hour%s, ", hour, hour == 1 ? "" : "s");
-	if (hour || min) printf("%d min, ", min);
-	printf("%d second%s\n", sec, sec == 1 ? "" : "s");
+	//printf("  Elapsed time: ");
+	//if (hour) printf("%d hour%s, ", hour, hour == 1 ? "" : "s");
+	//if (hour || min) printf("%d min, ", min);
+	//printf("%d second%s\n", sec, sec == 1 ? "" : "s");
 }
 
 /* takes serialized graph, selects random operation on the

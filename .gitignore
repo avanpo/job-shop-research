@@ -1,7 +1,8 @@
 sol
-instances/jobshop/*
+out.txt
 instances/instgen
 instances/*.txt
+instances/jobshop/*
 sols/*.txt
 sols/*.gpl
 sols/*.png

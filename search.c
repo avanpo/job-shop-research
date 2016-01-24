@@ -20,14 +20,14 @@ static void print_elapsed_time(int start_time);
 static int perform_swap(struct graph *graph, double temp);
 static int is_accepted(double temp, int old_makespan, int new_makespan);
 
-struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int neighborhood, int write)
+struct sa_state *construct_sa_search(struct instance *inst, int verbose, int draw, int blocking, int neighborhood, int write, double alpha)
 {
 	srand(time(NULL));
 	struct sa_state *sa = calloc(1, sizeof(struct sa_state));
 
 	sa->epoch_length = inst->num_ops * 8;
 	sa->initial_temp = 25;
-	sa->alpha = 0.95;
+	sa->alpha = alpha;
 	
 	struct graph *graph = construct_graph(inst, blocking, neighborhood);
 	init_graph(graph);
@@ -169,7 +169,7 @@ static void print_sa_search_end(struct sa_state *sa)
 		print_inst_info(sa->graph->inst);
 		printf("\n");
 	}
-	printf("Best solution found: \033[1m%d\033[0m\n", sa->best->makespan);
+	printf("Best solution found: %d\n", sa->best->makespan);
 	printf("\n");
 }
 
@@ -272,8 +272,8 @@ static int is_accepted(double temp, int old_makespan, int new_makespan)
 	}
 
 	double diff = (double)((old_makespan - new_makespan) * 100) / (double)old_makespan;
-	int p = (int)floor(100000 * exp(diff / temp));
-	int r = rand() % 100000;
+	int p = (int)floor(1000000 * exp(diff / temp));
+	int r = rand() % 1000000;
 
 	return r < p;
 }
@@ -285,7 +285,7 @@ static int find_and_swap(struct graph *graph)
 {
 	int ne = graph->neighborhood;
 	if (ne == 3) {
-		ne = rand() % 2;
+		ne = 1 + rand() % 2;
 	} else if (ne == 4) {
 		ne = rand() % 3;
 	}

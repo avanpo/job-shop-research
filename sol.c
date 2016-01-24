@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 	int blocking = 0;
 	int neighborhood = 0;
 	int write = 0;
+	double alpha = 0.99;
 
 	int i;
 	for (i = 1; i < argc; ++i) {
@@ -46,6 +47,11 @@ int main(int argc, char **argv)
 			++draw;
 		} else if (argv[i][1] == 'w') {
 			++write;
+		} else if (argv[i][1] == 'a') {
+			if (argv[i + 1][0] == '-') ++error;
+
+			sscanf(argv[++i], "%lf", &alpha);
+			if (alpha < 0.01 || alpha > 0.99999) ++error;
 		} else {
 			++error;
 		}
@@ -57,12 +63,13 @@ int main(int argc, char **argv)
 		printf("  \033[1m./sol\033[0m [OPTIONS]... -f INSTANCE_FILE\n");
 		printf("Options:\n");
 		printf("  -r RESTARTS   Set the number of restarts\n");
+		printf("  -a VAL        Set the cooling parameter alpha to VAL.\n");
 		printf("  -b            Set whether jobs are blocking or not\n");
 		printf("  -n VAL        Set the neighborhood. VAL can contain the following:\n");
 		printf("                  VAL=0  Only swaps on the critical path (default)\n");
 		printf("                  VAL=1  Only left shift operations\n");
 		printf("                  VAL=2  Only single operation shifts\n");
-		printf("                  VAL=3  Critical path and left shift neighborhoods\n");
+		printf("                  VAL=3  Left shift and single shift neighborhoods\n");
 		printf("                  VAL=4  All of the above\n");
 		printf("  -v1           Set the verbose option\n");
 		printf("  -v2           Set the very verbose option\n");
@@ -72,7 +79,7 @@ int main(int argc, char **argv)
 	}
 
 	struct instance *inst = read_inst(fname);
-	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking, neighborhood, write);
+	struct sa_state *sa = construct_sa_search(inst, verbose, draw, blocking, neighborhood, write, alpha);
 
 	start_sa_search(sa, restarts);
 

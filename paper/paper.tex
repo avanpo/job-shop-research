@@ -1,4 +1,4 @@
-\documentclass[a4paper,10pt]{article}
+\documentclass[a4paper,11pt]{article}
 \usepackage{amsmath}
 \usepackage{enumitem}
 \usepackage{booktabs}
@@ -26,11 +26,11 @@
 
 \maketitle
 
-\begin{abstract}
+%\begin{abstract}
 
-This is my abstract.
+%This paper explores the efficacy of the critical path neighborhood for the Flexible Job Shop problem, and the Flexible Blocking Job Shop problem. A disjunctive graph representation is chosen, in combination with simulated annealing, a popular local search variant. The neighborhood is assessed based on solution quality and rate of convergence.
 
-\end{abstract}
+%\end{abstract}
 
 \tableofcontents
 
@@ -284,7 +284,7 @@ Suppose the method above was not able to swap two operations, $O_{i,a_1}$ and $O
 
 This configation does not allow for the above swap without changing the order between the two inner operations, since it would create a cycle. However, it is easy to see that such an ordering will never create a schedule such that $O_{i,a_1}$ and $O_{j,b_2}$ are consecutive on the longest path, since operation $O_{j,b_1}$ has a non-zero processing time, and cannot be scheduled until after or equal to the finish time of $O_{i,a_1}$ due to $O_{i,a_2}$.
 
-\subsubsection{Infeasible solutions}
+\subsubsection{Feasibility}
 
 The critical path neighborhood for the classical Job Shop is guaranteed to consist of only feasible schedules (acyclic graphs), a very nice result from Van Laarhoven et al \cite{simulatedannealingjsp}. Unfortunately, this is not the case for the Flexible Job Shop. We have slightly modified the swap operation to ensure no waiting cycles within a machine type are created. However, this does not guarantee no waiting cycles in the entire graph are generated. Consider the schedule shown in \textbf{Figure \ref{fig:sch-cycle}}, where colors correspond to jobs.
 
@@ -302,7 +302,6 @@ The critical path neighborhood for the classical Job Shop is guaranteed to consi
 		bar height=0.8,
 		y unit title=0.5cm,
 		title/.style={draw=none, fill=none},
-		%title label/.style={align=left},
 		include title in canvas=false,
 	]{655}{669}
 
@@ -353,13 +352,13 @@ Unfortunately, given the more restrictive formulation, there are no benchmark in
 
 The next set of instances come from a previous project on exact methods for the FJS \cite{cijvat}, therefore including the optimal values. These instances are labeled \emph{c1 -- c19}. It should be noted that in almost all of these instances, the optimal makespan is equal to the maximum job makespan. This makes it easy to prove optimality, and also much easier to find an optimum.
 
-The rest of the instances were generated using a random instance generator built for this purpose. These are labeled \emph{v10 -- v43}. The optimal makespans for these instances is unknown. However, they do provide insight into the convergence behavior, especially when compared between instances.
+The rest of the instances were generated using a random instance generator built for this purpose. These are labeled \emph{v20 -- v33}. The optimal makespans for these instances is unknown. However, they do provide insight into the convergence behavior, especially when compared between instances.
 
-The local search was implemented in C, using the GCC compiler with the -O3 flag. The times listed are for an Intel Core i3 M370 @ 2.40 Hz. These results can be examined in \textbf{Table \ref{table:fjs}}.
+The local search was implemented in C, using the GCC compiler with the -O3 flag. Each configuration was run five times, to generate an average best makespan and execution time. These results can be examined in \textbf{Table \ref{table:fjs}}.
 
-\begin{table}[h]
+\begin{table}
 \centering
-\small
+\footnotesize
 \begin{tabular}{@{\bfseries}rrrrrrrrrrrr}
 	\toprule
 	\multicolumn{4}{c}{Instance} & \multicolumn{2}{c}{Properties} && \multicolumn{5}{c}{Results} \\
@@ -393,32 +392,47 @@ The local search was implemented in C, using the GCC compiler with the -O3 flag.
 	c17  & 10 &  4 & 16 &  955 &  955 &&    0.9 & 5 &  955 &  955 &    0 \\
 	c18  & 10 &  4 & 16 & 1621 & 1621 &&    0.9 & 5 & 1621 & 1621 &    0 \\
 	c19  & 15 &  5 & 25 & 2631 & 2631 &&    0.9 & 5 & 2631 & 2631 &    0 \\[2ex]
-	v20  &  8 &  2 &  4 &      &      &&    0.9 & 5 &      &      &      \\
+	v20  &  8 &  2 &  4 &  176 &      &&    0.9 & 5 &  387 &  387 &    1 \\
+	     &    &    &    &      &      &&   0.99 & 5 &  387 &  387 &    7 \\
+	     &    &    &    &      &      &&  0.999 & 5 &  387 &  387 &   67 \\
+	v21  &  8 &  2 &  8 &  187 &  187 &&    0.9 & 5 &  204 &  188 &    0 \\
+	     &    &    &    &      &      &&   0.99 & 5 &  197 &  188 &    4 \\
+	     &    &    &    &      &      &&  0.999 & 5 &  188 &  187 &   25 \\
+	v22  &  8 &  4 &  8 &  195 &      &&    0.9 & 5 &  237 &  237 &    1 \\
+	     &    &    &    &      &      &&   0.99 & 5 &  237 &  237 &    9 \\
+	     &    &    &    &      &      &&  0.999 & 5 &  237 &  237 &   82 \\
 	v30  & 16 &  2 &  4 &  666 &      &&    0.9 & 5 & 2382 & 2381 &   10 \\
 	     &    &    &    &      &      &&   0.99 & 5 & 2381 & 2381 &  102 \\
+	     &    &    &    &      &      &&  0.999 & 5 & 2381 & 2381 & 1045 \\
 	v31  & 16 &  2 &  8 &  566 &      &&    0.9 & 5 &  963 &  961 &   12 \\
 	     &    &    &    &      &      &&   0.99 & 5 &  960 &  959 &  126 \\
+	     &    &    &    &      &      &&  0.999 & 5 &  958 &  956 & 1238 \\
 	v32  & 16 &  4 &  8 &  655 &      &&    0.9 & 5 & 1119 & 1116 &   11 \\
 	     &    &    &    &      &      &&   0.99 & 5 & 1112 & 1111 &  116 \\
+	     &    &    &    &      &      &&  0.999 & 5 & 1108 & 1106 & 1164 \\
+	v33  & 16 &  4 & 16 &  626 &  626 &&    0.9 & 5 &  628 &  626 &    5 \\
+	     &    &    &    &      &      &&   0.99 & 5 &  657 &  651 &   84 \\
 	\bottomrule
 \end{tabular}
 \caption{Computational results for the FJS}
 \label{table:fjs}
 \end{table}
 
-Most of the parameters in the table are self-explanatory. $\alpha$ is the cooling parameter. It is responsible for lowering the tempterature of the simulated annealing process. A value closer to 1 means the temperature cools slower, and thus the heuristic searches longer. The restarts column indicates how many times the temperature was reset. This entire process was repeated five times for every instance, to provide an average best solution found ($\bar{C}$) and the average running time ($\bar{t}$).
+Most of the parameters in the table are self-explanatory. The times are given in seconds, for an Intel Core i3 M370 @ 2.40 Hz CPU. $\alpha$ is the cooling parameter. It is responsible for lowering the tempterature of the simulated annealing process. A value closer to 1 means the temperature cools more slowly, and thus the heuristic searches longer. The restarts column indicates how many times the temperature was reset. The average best makespans are indicated by $\bar{C}$, and the average running times by $\bar{t}$.
 
 \subsection{Analysis}
 
-For the Job Shop instances (\emph{ft06}, \emph{ft10}, and \emph{ft20}), the code as well as previous results in literature \cite{simulatedannealingjsp}. This gives us confidence that the code is robust.
+For the Job Shop instances (\emph{ft06}, \emph{ft10}, and \emph{ft20}), the code performs as well as previous results in literature \cite{simulatedannealingjsp}. This gives us confidence that the code is robust.
 
-The series of instances from the previous project (\emph{c1 -- c19}) are largely uninteresting, due to there being too few jobs in relation to machines. Interestingly, the few instances whose optimal makespans were larger than the lower bound given by the job makespans gave the search more trouble, despite being much smaller than some of the other instances. In several cases, the search failed to find an optimal solution despite the restarts, being very slightly off. However, this was averaged out by the other results. It should be noted that there were several instances of the algorithm becoming stuck, with the only neighborhood solution available being infeasible. This is very rare, but it highlights the importance of random restarts, when using the critical path neighborhood for the FJS.
+The series of instances from the previous project (\emph{c1 -- c19}) are largely uninteresting, due to there being too few jobs in relation to machines. For the few instances whose optimal makespans were larger than the lower bound given by the job makespans, the search had significantly more trouble finding the optimum, despite being much smaller than some of the other instances. In several cases, the search failed to find an optimal solution despite the restarts, being very slightly off. However, this was averaged out by the other results. It should be noted that in some of these cases, the algorithm actually became stuck in a small area of the solution space, with the only neighborhood solution available being infeasible. This is very rare, but it highlights the importance of random restarts when using the critical path neighborhood for the FJS.
 
 For the other instances, we see that the algorithm converges very quickly. More searching failed to find solutions significantly below the best solutions found almost immediately. This indicates the critical path neighborhood works very well for the Flexible Job Shop problem. As the solution improves, the size of the neighborhood becomes smaller and smaller. This leads to very fast converging behavior.
 
 It is also interesting to note that the amount of machine types and total machines have little to do with the "difficulty" of the instance. The algorithm converged equally quickly for all machine type configurations, with the amount of jobs and operations held constant.
 
 \section{A local search approach to the FBSJ}
+
+The Flexible Blocking Job Shop adds the blocking constraint to the problem. This constraint adds a new degree of complexity to the problem, and is notoriously difficult to solve. Any optimal makespan found will be at least as large as its non-blocking counterpart. Completing jobs in the shortest timespan possible suddenly becomes very important, in order to reduce the total time a machine spends being blocked.
 
 \subsection{Serialization}
 
@@ -448,11 +462,13 @@ While this neighborhood somewhat takes the nature of blocking and jobs into acco
 
 \subsection{Computational results}
 
-The same instances are used as before. A new column, containing the best non-blocking solution for the instance, is added for comparison.
+The same instances are used as before. The restarts were held constant at five. A new column, containing the best non-blocking solution for the instance, is added for comparison. The results can be explored in \textbf{Table \ref{table:fbjs}}.
 
-\begin{table}[h]
+No running times are listed, but in general they are in the same order as for the FJS (a bit more, the blocking constraints do add some extra computation).
+
+\begin{table}
 \centering
-\small
+\footnotesize
 \begin{tabular}{@{\bfseries}rrrrrrrrrrrrr}
 	\toprule
 	& FJS & FBJS & && \multicolumn{2}{c}{Critical Path} &&
@@ -468,38 +484,40 @@ The same instances are used as before. A new column, containing the best non-blo
 	     &      &      & 0.999 && 2366 & 2028 && 1380 & 1281 && 1371 & 1292 \\
 	ft20 & 1165 &      &   0.9 && 2476 & 2406 && 1957 & 1866 && 1935 & 1869 \\
 	     &      &      &  0.99 && 2454 & 2348 && 1840 & 1814 && 1860 & 1840 \\
-	     &      &      & 0.999 && 5 & 1170 && 1165 &  130 &&   & \\[2ex]
+	     &      &      & 0.999 && 2393 & 2209 && 1694 & 1646 && 1714 & 1632 \\[2ex]
 	c1   &   34 &      &  0.99 &&   66 &   62 &&   37 &   37 &&   37 &   37 \\
 	c2   &   53 &      &  0.99 &&   88 &   75 &&   65 &   65 &&   65 &   65 \\
 	c3   &  143 &      &  0.99 &&  206 &  206 &&  180 &  180 &&  180 &  180 \\
 	c4   &   57 &      &  0.99 &&  116 &  109 &&   94 &   92 &&   91 &   90 \\
 	c5   &  113 &      &  0.99 &&  247 &  215 &&  180 &  170 &&  175 &  170 \\
 	c6   &  225 &      &  0.99 &&  502 &  434 &&  365 &  360 &&  360 &  353 \\
-	c7   &   39 &      &  0.99 &&   39 &   39 &&   39 &   39 &&   39 &   39 \\
-	c8   &   64 &      &  0.99 &&   64 &   64 &&   64 &   64 &&   64 &   64 \\
-	c9   &  138 &      &  0.99 &&  138 &  138 &&  138 &  138 &&  138 &  138 \\
-	c10  &   50 &      &  0.99 &&   50 &   50 &&   50 &   50 &&   50 &   50 \\
+	c7   &   39 &   39 &  0.99 &&   39 &   39 &&   39 &   39 &&   39 &   39 \\
+	c8   &   64 &   64 &  0.99 &&   64 &   64 &&   64 &   64 &&   64 &   64 \\
+	c9   &  138 &  138 &  0.99 &&  138 &  138 &&  138 &  138 &&  138 &  138 \\
+	c10  &   50 &   50 &  0.99 &&   50 &   50 &&   50 &   50 &&   50 &   50 \\
 	c11  &  103 &      &  0.99 &&  170 &  116 &&  106 &  106 &&  106 &  106 \\
 	c12  &  204 &      &  0.99 &&  265 &  210 &&  208 &  208 &&  208 &  208 \\
 	c13  &  337 &      &  0.99 &&  557 &  524 &&  467 &  458 &&  393 &  389 \\
 	c14  &  705 &      &  0.99 && 1203 & 1036 &&  866 &  833 &&  797 &  788 \\
 	c15  & 1458 &      &  0.99 && 2556 & 2258 && 1789 & 1666 && 1508 & 1493 \\
-	c16  &  405 &      &  0.99 &&  519 &  483 &&  444 &  429 &&  405 &  405 \\
-	c17  &  955 &      &  0.99 && 1257 & 1009 &&  962 &  955 &&  955 &  955 \\
-	c18  & 1621 &      &  0.99 && 2314 & 2131 && 1710 & 1688 && 1621 & 1621 \\
-	c19  & 2631 &      &  0.99 && 4568 & 3973 && 4365 & 4049 && 2631 & 2631 \\[2ex]
-	v20  &      &      &   0.9 &&  571 &  540 &&  494 &  476 &&  438 &  423 \\
+	c16  &  405 &  405 &  0.99 &&  519 &  483 &&  444 &  429 &&  405 &  405 \\
+	c17  &  955 &  955 &  0.99 && 1257 & 1009 &&  962 &  955 &&  955 &  955 \\
+	c18  & 1621 & 1621 &  0.99 && 2314 & 2131 && 1710 & 1688 && 1621 & 1621 \\
+	c19  & 2631 & 2631 &  0.99 && 4568 & 3973 && 4365 & 4049 && 2631 & 2631 \\[2ex]
+	v20  &  387 &      &   0.9 &&  571 &  540 &&  494 &  476 &&  438 &  423 \\
 	     &      &      &  0.99 &&  527 &  517 &&  447 &  421 &&  424 &  418 \\
-	v21  &      &      &   0.9 &&  331 &  293 &&  277 &  254 &&  218 &  215 \\
+	v21  &  187 &      &   0.9 &&  331 &  293 &&  277 &  254 &&  218 &  215 \\
 	     &      &      &  0.99 &&  327 &  291 &&  213 &  209 &&  198 &  194 \\
-	v22  &      &      &   0.9 &&  419 &  387 &&  326 &  314 &&  294 &  284 \\
+	v22  &  237 &      &   0.9 &&  419 &  387 &&  326 &  314 &&  294 &  284 \\
 	     &      &      &  0.99 &&  393 &  369 &&  293 &  281 &&  273 &  262 \\
 	v30  & 2381 &      &   0.9 && 4210 & 4068 && 5969 & 5856 && 3546 & 3438 \\
 	     &      &      &  0.99 && 4200 & 4154 && 5591 & 5411 && 3287 & 3147 \\
 	v31  &  959 &      &   0.9 && 1658 & 1573 && 4303 & 4133 && 1702 & 1635 \\
 	     &      &      &  0.99 && 1688 & 1632 && 3772 & 3712 && 1646 & 1617 \\
-	v32  & 1111 &      &   0.9 && 5 & 1119 && 1116 &   11 &&   & \\
-	     &      &      &  0.99 && 2629 & 2601 && 1111 &  116 &&   & \\
+	v32  & 1111 &      &   0.9 && 2570 & 2389 && 5214 & 5054 && 2570 & 2389 \\
+	     &      &      &  0.99 && 2629 & 2601 && 4481 & 4209 && 2171 & 1983 \\
+	v33  &  626 &      &   0.9 && 1296 & 1212 && 3182 & 2931 && 1098 & 1053 \\
+	     &      &      &  0.99 && 1335 & 1244 && 2061 & 1903 &&  952 &  894 \\
 	\bottomrule
 \end{tabular}
 \caption{Computational results for the FBJS}

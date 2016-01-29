@@ -1,7 +1,9 @@
 #!/usr/bin/ruby
 
 # Converts instances from jobshop1.txt to the format
-# used by my code.
+# used by this code. Note that only one instance is
+# accepted at a time, without any garbage lines or
+# comments.
 #
 # USAGE:
 # Run with the source instance file name as parameter
